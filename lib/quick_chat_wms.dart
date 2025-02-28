@@ -54,6 +54,9 @@ class QuickChatState extends State<QuickChat> {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
       File file = File(result.files.single.path!);
+      debugPrint('File picked: ${file.path}');
+    } else {
+      debugPrint("File pick cancelled");
     }
   }
 
@@ -117,7 +120,7 @@ class QuickChatState extends State<QuickChat> {
             .toList();
       }
     } catch (e) {
-      print('Error picking file: $e');
+      debugPrint('Error picking file: $e');
     }
 
     return [];

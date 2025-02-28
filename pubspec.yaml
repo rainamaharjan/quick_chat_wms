@@ -1,6 +1,6 @@
 name: quick_chat_wms
 description: "WorldLink messaging system - chat inbox"
-version: 1.0.1
+version: 1.0.0
 repository: https://github.com/rainamaharjan/quick_chat_wms
 homepage: https://github.com/rainamaharjan/quick_chat_wms
 license : MIT

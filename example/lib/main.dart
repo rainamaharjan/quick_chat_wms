@@ -1,7 +1,10 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:quick_chat_wms/quick_chat_wms.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -11,20 +14,16 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({super.key});
 
-  final String title;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -41,7 +40,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         floatingActionButton: FloatingActionButton(
-          // isExtended: true,
           child: Icon(Icons.ac_unit),
           backgroundColor: Colors.blueAccent,
           onPressed: () {
@@ -53,6 +51,12 @@ class _MyHomePageState extends State<MyHomePage> {
           backgroundColor: Colors.blueAccent,
           centerTitle: true,
         ),
-        body: const QuickChatWidget(id: ""));
+        body: Container(
+          child: InkWell(
+              onTap: () {
+                QuickChat.init(context,'',appBarTitle: "this is test");
+              },
+              child: Center(child: Text('Click me to navigate',))),
+        ));
   }
 }

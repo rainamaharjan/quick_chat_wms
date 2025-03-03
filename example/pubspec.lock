@@ -130,7 +130,7 @@ packages:
     source: hosted
     version: "0.5.7+7"
   firebase_core:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: firebase_core
       sha256: "26de145bb9688a90962faec6f838247377b0b0d32cc0abecd9a4e43525fc856c"
@@ -154,7 +154,7 @@ packages:
     source: hosted
     version: "2.17.5"
   firebase_crashlytics:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: firebase_crashlytics
       sha256: "9897c01efaa950d2f6da8317d12452749a74dc45f33b46390a14cfe28067f271"
@@ -170,7 +170,7 @@ packages:
     source: hosted
     version: "3.6.35"
   firebase_messaging:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: firebase_messaging
       sha256: a1662cc95d9750a324ad9df349b873360af6f11414902021f130c68ec02267c4

@@ -1,20 +1,32 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart'
     as webview_flutter_android;
-import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'notification_handler.dart';
 
 late WebViewController _controller;
 
 class QuickChatWidget extends StatefulWidget {
   final String id;
+  final String appBarTitle;
+  final Color appBarTitleColor;
+  final Color appBarBackgroundColor;
+  final Color backgroundColor;
+  final Color appBarBackButtonColor;
 
-  const QuickChatWidget({super.key, required this.id});
+  const QuickChatWidget({
+    super.key,
+    required this.id,
+    required this.appBarTitle,
+    required this.appBarTitleColor,
+    required this.backgroundColor,
+    required this.appBarBackgroundColor,
+    required this.appBarBackButtonColor,
+  });
 
   @override
   State<QuickChatWidget> createState() => QuickChatWidgetState();
@@ -23,12 +35,12 @@ class QuickChatWidget extends StatefulWidget {
 class QuickChatWidgetState extends State<QuickChatWidget> {
   WebViewController? _externalController;
   String url = '';
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     url = "https://app.quickconnect.biz/mobile-widget?widged_id=${widget.id}";
-    NotificationHandler.initialize();
     _initializeController();
   }
 
@@ -42,8 +54,12 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
         onMessageReceived: (JavaScriptMessage message) {
           String uniqueId = message.message;
           debugPrint("Received Unique ID: $uniqueId");
-          //hit api with firebase token and unique id
-          // saveUniqueId(uniqueId);
+          if (uniqueId != null || uniqueId.isNotEmpty) {
+            postTokenToApi(uniqueId);
+          } else {
+            uniqueId = generateUniqueId();
+            postTokenToApi(uniqueId);
+          }
           if (message.message == "pickFile") {
             pickFile();
           }
@@ -52,6 +68,21 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
       ..setNavigationDelegate(_createNavigationDelegate())
       ..loadRequest(Uri.parse(url ?? ''));
     _configureFilePicker(_controller);
+  }
+
+  String generateUniqueId() {
+    DateTime now = DateTime.now();
+    return "${now.year}${now.month.toString().padLeft(2, '0')}"
+        "${now.day.toString().padLeft(2, '0')}${now.hour.toString().padLeft(2, '0')}"
+        "${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}"
+        "${now.millisecond.toString().padLeft(3, '0')}";
+  }
+
+  static Future<void> postTokenToApi(String uniqueId) async {
+    await FirebaseMessaging.instance.getToken().then((token) async {
+      debugPrint("FCM Token: $token");
+      // await NotificationHandler.updateFirebaseToken(token ?? '', uniqueId);
+    });
   }
 
   Future<void> pickFile() async {
@@ -66,6 +97,7 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
 
   NavigationDelegate _createNavigationDelegate() {
     return NavigationDelegate(
+      onPageStarted: _onPageStarted,
       onNavigationRequest: _handleNavigationRequest,
       onPageFinished: _onPageFinished,
     );
@@ -78,6 +110,12 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
       return NavigationDecision.prevent;
     }
     return NavigationDecision.navigate;
+  }
+
+  Future<void> _onPageStarted(String url) async {
+    setState(() {
+      isLoading = true; // Show loading spinner when page starts loading
+    });
   }
 
   Future<void> _onPageFinished(String url) async {
@@ -98,6 +136,10 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
         "    FlutterWebView.postMessage(uniqueId);"
         "  }"
         "}");
+
+    setState(() {
+      isLoading = false; // Hide loading spinner when page finishes loading
+    });
   }
 
   Future<void> _configureFilePicker(WebViewController controller) async {
@@ -210,61 +252,70 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return WebViewWidget(controller: _controller);
+    return Scaffold(
+        backgroundColor: widget.backgroundColor,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            color: widget.appBarBackButtonColor,
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          title: Text(
+            widget.appBarTitle,
+            style: TextStyle(color: widget.appBarTitleColor),
+          ),
+          centerTitle: true,
+          backgroundColor: widget.appBarBackgroundColor,
+        ),
+        body:Stack(
+          children: [
+            WebViewWidget(controller: _controller),
+            if (isLoading)
+              const Center(
+                child: CircularProgressIndicator(color: Colors.blueGrey,),
+              ),
+          ],
+        ),);
   }
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+String? activeChatContactId; // Stores the current chat's contact ID
+
 class QuickChat {
+  static void init(
+    BuildContext context,
+    String widgetId, {
+    Color backgroundColor = Colors.white, // Default background color
+    String appBarTitle = 'Chat Inbox', // Default app bar title
+    Color appBarBackgroundColor = Colors.blueAccent, // Default background color
+    Color appBarTitleColor = Colors.white, // Default title color
+    Color appBarBackButtonColor = Colors.white, // Default back button color
+  }) {
+    NotificationHandler.initialize();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => QuickChatWidget(
+            id: widgetId ?? '',
+            appBarTitle: appBarTitle,
+            appBarBackgroundColor: appBarBackgroundColor,
+            appBarTitleColor: appBarTitleColor,
+            appBarBackButtonColor: appBarBackButtonColor,
+            backgroundColor: backgroundColor),
+      ),
+    );
+  }
+
   static Future<void> resetUser() async {
+    //call update firebase token api and post null to clear token
     await _controller.runJavaScript("""
       localStorage.clear();
       console.log('LocalStorage cleared');
     """);
     await _controller.reload();
     debugPrint("-------storage cleared--------");
-  }
-}
-
-class NotificationHandler {
-  static Future<void> initialize() async {
-    requestPermission();
-
-    await Firebase.initializeApp();
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (message.notification != null) {
-        String title = message.notification?.title ?? '';
-        String body = message.notification?.body ?? '';
-        _sendNotificationToWebView(title, body);
-      }
-    });
-
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      if (message.notification != null) {
-        String title = message.notification?.title ?? '';
-        String body = message.notification?.body ?? '';
-        _sendNotificationToWebView(title, body);
-      }
-    });
-  }
-
-  static void _sendNotificationToWebView(String title, String body) {
-    if (_controller != null) {
-      _controller.runJavaScript('handleNotification("$title", "$body");');
-    }
-  }
-}
-
-void requestPermission() async {
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
-  NotificationSettings settings = await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
-
-  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-    debugPrint("User granted permission");
-  } else {
-    debugPrint("User declined or has not accepted permission");
   }
 }

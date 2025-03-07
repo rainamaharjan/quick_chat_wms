@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:quick_chat_wms/quick_chat_wms.dart';
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   runApp(const MyApp());
@@ -11,7 +11,6 @@ void main() async{
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
@@ -23,7 +22,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
-
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -54,9 +52,12 @@ class _MyHomePageState extends State<MyHomePage> {
         body: Container(
           child: InkWell(
               onTap: () {
-                QuickChat.init(context,'',appBarTitle: "this is test");
+                QuickChat.init(context, widgetCode: '333e19f3-ef36-4216-8788-674a1817f087',);
               },
-              child: Center(child: Text('Click me to navigate',))),
+              child: Center(
+                  child: Text(
+                'Click me to navigate',
+              ))),
         ));
   }
 }

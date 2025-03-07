@@ -11,7 +11,8 @@ import 'notification_handler.dart';
 late WebViewController _controller;
 
 class QuickChatWidget extends StatefulWidget {
-  final String id;
+  final String widgetCode;
+  final String fcmServerKey;
   final String appBarTitle;
   final Color appBarTitleColor;
   final Color appBarBackgroundColor;
@@ -20,7 +21,8 @@ class QuickChatWidget extends StatefulWidget {
 
   const QuickChatWidget({
     super.key,
-    required this.id,
+    required this.widgetCode,
+    required this.fcmServerKey,
     required this.appBarTitle,
     required this.appBarTitleColor,
     required this.backgroundColor,
@@ -36,11 +38,14 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
   WebViewController? _externalController;
   String url = '';
   bool isLoading = true;
+  static String fcmServerKey = '';
 
   @override
   void initState() {
     super.initState();
-    url = "https://app.quickconnect.biz/mobile-widget?widged_id=${widget.id}";
+    url =
+        "http://wms-srm-m02.wlink.com.np:3013/mobileChat.html?widgetId=${widget.widgetCode}";
+    fcmServerKey = widget.fcmServerKey;
     _initializeController();
   }
 
@@ -80,8 +85,8 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
 
   static Future<void> postTokenToApi(String uniqueId) async {
     await FirebaseMessaging.instance.getToken().then((token) async {
-      debugPrint("FCM Token: $token");
-      // await NotificationHandler.updateFirebaseToken(token ?? '', uniqueId);
+      await NotificationHandler.updateFirebaseToken(
+          token ?? '', uniqueId, fcmServerKey);
     });
   }
 
@@ -89,9 +94,9 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
       File file = File(result.files.single.path!);
-      debugPrint('File picked: ${file.path}');
+      print('Quick Chat -------- File picked: ${file.path}');
     } else {
-      debugPrint("File pick cancelled");
+      print("Quick Chat -------- File pick cancelled");
     }
   }
 
@@ -169,7 +174,7 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
             .toList();
       }
     } catch (e) {
-      debugPrint('Error picking file: $e');
+      print('Quick Chat -------- Error picking file: $e');
     }
 
     return [];
@@ -253,31 +258,34 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: widget.backgroundColor,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            color: widget.appBarBackButtonColor,
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-          title: Text(
-            widget.appBarTitle,
-            style: TextStyle(color: widget.appBarTitleColor),
-          ),
-          centerTitle: true,
-          backgroundColor: widget.appBarBackgroundColor,
+      backgroundColor: widget.backgroundColor,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          color: widget.appBarBackButtonColor,
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
-        body:Stack(
-          children: [
-            WebViewWidget(controller: _controller),
-            if (isLoading)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.blueGrey,),
+        title: Text(
+          widget.appBarTitle,
+          style: TextStyle(color: widget.appBarTitleColor),
+        ),
+        centerTitle: true,
+        backgroundColor: widget.appBarBackgroundColor,
+      ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (isLoading)
+            const Center(
+              child: CircularProgressIndicator(
+                color: Colors.blueGrey,
               ),
-          ],
-        ),);
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -287,10 +295,11 @@ String? activeChatContactId; // Stores the current chat's contact ID
 
 class QuickChat {
   static void init(
-    BuildContext context,
-    String widgetId, {
+    BuildContext context, {
+    String widgetCode = '',
+    String fcmServerKey = '',
     Color backgroundColor = Colors.white, // Default background color
-    String appBarTitle = 'Chat Inbox', // Default app bar title
+    String appBarTitle = 'Chat With Us', // Default app bar title
     Color appBarBackgroundColor = Colors.blueAccent, // Default background color
     Color appBarTitleColor = Colors.white, // Default title color
     Color appBarBackButtonColor = Colors.white, // Default back button color
@@ -299,7 +308,8 @@ class QuickChat {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => QuickChatWidget(
-            id: widgetId ?? '',
+            widgetCode: widgetCode ?? '',
+            fcmServerKey: fcmServerKey ?? '',
             appBarTitle: appBarTitle,
             appBarBackgroundColor: appBarBackgroundColor,
             appBarTitleColor: appBarTitleColor,
@@ -310,7 +320,7 @@ class QuickChat {
   }
 
   static Future<void> resetUser() async {
-    //call update firebase token api and post null to clear token
+    await NotificationHandler.updateFirebaseToken('', '', '');
     await _controller.runJavaScript("""
       localStorage.clear();
       console.log('LocalStorage cleared');

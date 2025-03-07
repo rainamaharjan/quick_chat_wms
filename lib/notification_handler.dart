@@ -11,7 +11,12 @@ import 'package:http/http.dart' as http;
 class NotificationHandler {
   static Future<void> initialize() async {
     requestPermission();
-    await Firebase.initializeApp();
+    try {
+      await Firebase.initializeApp();
+    } catch (e) {
+      print(
+          "Quick Chat -------- Firebase not initialized. Make sure to add google-services.json in your app.");
+    }
     getFcmConfigure();
     initLocalNotifications();
 
@@ -24,20 +29,26 @@ class NotificationHandler {
     });
   }
 
-  static Future<void> updateFirebaseToken(String fcmToken,String uniqueId) async {
+  static Future<void> updateFirebaseToken(
+      String fcmToken, String uniqueId, String fcmServerKey) async {
     final url = Uri.parse(
-        'https://app.quickconnect.biz/api/api/v1/users/update-firebase-token');
-    final headers = {
-      'Content-Type': 'application/json',
+        // 'https://app.quickconnect.biz/api/api/v1/store-firebase-token');
+        'https://wms-uat.worldlink.com.np/api/api/v1/store-firebase-token');
+    // final headers = {
+    //   'Content-Type': 'application/json',
+    // };
+
+    final body = {
+      'fcm_server_key': fcmServerKey,
+      'firebase_token': fcmToken,
+      'client_unique_id': uniqueId,
     };
 
-    final body = jsonEncode({
-      'mobile_firebase_token': fcmToken,
-      'unique_id': uniqueId,
-    });
+    print("fcmtokenapi $fcmToken");
+    print("fcmtokenapi id $uniqueId");
 
     try {
-      final response = await http.post(url, headers: headers, body: body);
+      final response = await http.post(url, body: body);
 
       if (response.statusCode == 200) {
         debugPrint('FCM Token updated successfully');
@@ -54,7 +65,6 @@ class NotificationHandler {
       FlutterLocalNotificationsPlugin();
 
   static void getFcmConfigure() async {
-
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint(
           "FCM NOTIFICATION ---Foreground message received: ${jsonEncode(message.toMap())}");
@@ -82,7 +92,7 @@ class NotificationHandler {
     String? chatId = data['chat_id'];
 
     if (chatId != null) {
-      // QuickChat.initQuickChat(chatId ?? '');
+      // QuickChat.init(chatId ?? '');
     }
   }
 
@@ -99,7 +109,6 @@ class NotificationHandler {
           "FCM NOTIFICATION ---🔕 No notification: User is already chatting with $activeChatContactId");
       return;
     }
-
 
     InboxStyleInformation inboxStyle = InboxStyleInformation(
       [message.notification?.body ?? ''],

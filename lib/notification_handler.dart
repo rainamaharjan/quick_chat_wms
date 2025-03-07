@@ -18,10 +18,8 @@ class NotificationHandler {
       print(
           "Quick Chat -------- Firebase not initialized. Make sure to add google-services.json in your app.");
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
       getFcmConfigure(context);
       initLocalNotifications(context);
-    });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       _handleNotificationClick(message.data, context);
@@ -98,7 +96,6 @@ class NotificationHandler {
     Color appBarTitleColor = prefs['appBarTitleColor'];
     Color appBarBackButtonColor = prefs['appBarBackButtonColor'];
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
       QuickChat.init(context,
           widgetCode: widgetCode,
           fcmServerKey: fcmServerKey,
@@ -107,7 +104,6 @@ class NotificationHandler {
           appBarTitleColor: appBarTitleColor,
           appBarBackButtonColor: appBarBackButtonColor,
           backgroundColor: backgroundColor);
-    });
   }
 
   static Future<void> showLocalNotification(RemoteMessage message) async {
@@ -192,4 +188,5 @@ void requestPermission() async {
   } else {
     debugPrint("User declined or has not accepted permission");
   }
+
 }

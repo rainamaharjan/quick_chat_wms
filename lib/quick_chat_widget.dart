@@ -47,6 +47,7 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
     url =
         "http://wms-srm-m02.wlink.com.np:3013/mobileChat.html?widgetId=${widget.widgetCode}";
     fcmServerKey = widget.fcmServerKey;
+    postTokenToApi(generateUniqueId());
     _initializeController();
   }
 
@@ -58,14 +59,6 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
       ..addJavaScriptChannel(
         'FlutterWebView',
         onMessageReceived: (JavaScriptMessage message) {
-          String uniqueId = message.message;
-          debugPrint("Received Unique ID: $uniqueId");
-          if (uniqueId.isNotEmpty) {
-            postTokenToApi(uniqueId);
-          } else {
-            uniqueId = generateUniqueId();
-            postTokenToApi(uniqueId);
-          }
           if (message.message == "pickFile") {
             pickFile();
           }
@@ -136,12 +129,13 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
         "}"
 
         // Inject JavaScript to capture unique ID
-        "if(window.localStorage) {"
-        "  var uniqueId = localStorage.getItem('uniqueId');"
-        "  if (uniqueId) {"
-        "    FlutterWebView.postMessage(uniqueId);"
-        "  }"
-        "}");
+        // "if(window.localStorage) {"
+        // "  var uniqueId = localStorage.getItem('uniqueId');"
+        // "  if (uniqueId) {"
+        // "    FlutterWebView.postMessage(uniqueId);"
+        // "  }"
+        // "}"
+    );
 
     setState(() {
       isLoading = false; // Hide loading spinner when page finishes loading
@@ -285,9 +279,9 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
         children: [
           WebViewWidget(controller: _controller),
           if (isLoading)
-            const Center(
+            Center(
               child: CircularProgressIndicator(
-                color: Colors.blueGrey,
+                color: widget.appBarBackgroundColor,
               ),
             ),
         ],
@@ -323,8 +317,6 @@ class QuickChat {
       appBarTitleColor: appBarTitleColor,
       appBarBackButtonColor: appBarBackgroundColor,
     );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => QuickChatWidget(
@@ -337,7 +329,6 @@ class QuickChat {
               backgroundColor: backgroundColor),
         ),
       );
-    });
   }
 
   static Future<void> resetUser() async {

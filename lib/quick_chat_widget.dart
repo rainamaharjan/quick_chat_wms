@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:quick_chat_wms/preference_manager.dart';
+import 'package:quick_chat_wms/url_launcher_helper.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart'
     as webview_flutter_android;
@@ -35,11 +36,12 @@ class QuickChatWidget extends StatefulWidget {
   State<QuickChatWidget> createState() => QuickChatWidgetState();
 }
 
-class QuickChatWidgetState extends State<QuickChatWidget> {
-  WebViewController? _externalController;
+class QuickChatWidgetState extends State<QuickChatWidget>
+    with WidgetsBindingObserver {
   String url = '';
   bool isLoading = true;
   static String fcmServerKey = '';
+  WebViewController? _externalController;
 
   @override
   void initState() {
@@ -48,7 +50,21 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
         "http://wms-srm-m02.wlink.com.np:3013/mobileChat.html?widgetId=${widget.widgetCode}";
     fcmServerKey = widget.fcmServerKey;
     postTokenToApi(generateUniqueId());
+    WidgetsBinding.instance.addObserver(this);
     _initializeController();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _controller.reload();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   void _initializeController() {
@@ -104,6 +120,12 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
 
   Future<NavigationDecision> _handleNavigationRequest(
       NavigationRequest request) async {
+    if (request.url.contains('google.com')) {
+      // Handle the URL externally (e.g., launch an external browser)
+      print('Navigating externally to: ${request.url}');
+      return NavigationDecision.prevent; // Prevent in-app navigation
+    }
+
     if (!request.url.contains(url)) {
       _showExternalWebView(request.url);
       return NavigationDecision.prevent;
@@ -135,7 +157,7 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
         // "    FlutterWebView.postMessage(uniqueId);"
         // "  }"
         // "}"
-    );
+        );
 
     setState(() {
       isLoading = false; // Hide loading spinner when page finishes loading
@@ -213,78 +235,57 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
     if (uri.scheme != 'https' && uri.scheme != 'http') {
       return;
     }
-
-    _externalController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse(url));
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog.fullscreen(
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildAppBar(),
-              Expanded(child: WebViewWidget(controller: _externalController!)),
-            ],
-          ),
-        ),
-      ),
-    );
+    URLLauncherHelper.launchURL(url);
   }
 
-  Widget _buildAppBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      color: Colors.grey[100],
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-    );
+  Future<bool> _onBackPressed() async {
+    if (await _controller.canGoBack()) {
+      _controller.goBack();
+      return Future.value(false);
+    } else {
+      return Future.value(true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: widget.backgroundColor,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(50), // Increased height
-        child: AppBar(
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_outlined,
-              size: 18,
-              color: widget.appBarBackButtonColor,
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-          title: Text(
-            widget.appBarTitle,
-            style: TextStyle(color: widget.appBarTitleColor, fontSize: 18),
-          ),
-          centerTitle: true,
-          backgroundColor: widget.appBarBackgroundColor,
-        ),
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (isLoading)
-            Center(
-              child: CircularProgressIndicator(
-                color: widget.appBarBackgroundColor,
+    return WillPopScope(
+      onWillPop: _onBackPressed, // Intercept back press
+
+      child: Scaffold(
+        backgroundColor: widget.backgroundColor,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(50), // Increased height
+          child: AppBar(
+            leading: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_outlined,
+                size: 18,
+                color: widget.appBarBackButtonColor,
               ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
             ),
-        ],
+            title: Text(
+              widget.appBarTitle,
+              style: TextStyle(color: widget.appBarTitleColor, fontSize: 18),
+            ),
+            centerTitle: true,
+            backgroundColor: widget.appBarBackgroundColor,
+          ),
+        ),
+        body: Stack(
+          children: [
+            WebViewWidget(controller: _controller),
+            if (isLoading)
+              Center(
+                child: CircularProgressIndicator(
+                  color: widget.appBarBackgroundColor,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -317,18 +318,18 @@ class QuickChat {
       appBarTitleColor: appBarTitleColor,
       appBarBackButtonColor: appBarBackgroundColor,
     );
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => QuickChatWidget(
-              widgetCode: widgetCode,
-              fcmServerKey: fcmServerKey,
-              appBarTitle: appBarTitle,
-              appBarBackgroundColor: appBarBackgroundColor,
-              appBarTitleColor: appBarTitleColor,
-              appBarBackButtonColor: appBarBackButtonColor,
-              backgroundColor: backgroundColor),
-        ),
-      );
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => QuickChatWidget(
+            widgetCode: widgetCode,
+            fcmServerKey: fcmServerKey,
+            appBarTitle: appBarTitle,
+            appBarBackgroundColor: appBarBackgroundColor,
+            appBarTitleColor: appBarTitleColor,
+            appBarBackButtonColor: appBarBackButtonColor,
+            backgroundColor: backgroundColor),
+      ),
+    );
   }
 
   static Future<void> resetUser() async {

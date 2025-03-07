@@ -1,0 +1,147 @@
+{
+  "project_info": {
+    "project_number": "76694062225",
+    "firebase_url": "https://starlit-gift-854.firebaseio.com",
+    "project_id": "starlit-gift-854",
+    "storage_bucket": "starlit-gift-854.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:76694062225:android:d50d69a1269832c1",
+        "android_client_info": {
+          "package_name": "com.example.example"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "76694062225-27p18941tgncq79aa907d3s3qtvvlpvl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.example",
+            "certificate_hash": "1796c18a294c8fb6da33cec30383785d6ed75bc2"
+          }
+        },
+        {
+          "client_id": "76694062225-e18kdse9jmfi174nmn3c82362lk0neu9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.example",
+            "certificate_hash": "6c8b495a574b9f325838f01aabe9a2d2608f3a57"
+          }
+        },
+        {
+          "client_id": "76694062225-g91rsd6c3bovc8olbn2ruh447k2bvv5m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.example",
+            "certificate_hash": "181c9bee44826a3f60ce192360b65d51c1023643"
+          }
+        },
+        {
+          "client_id": "76694062225-jl2q60v36j0c507psrr3u30ovhcip4gd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.example",
+            "certificate_hash": "4ffa6ce3c06505bcc5215b3fdd3e61fe0e75b8c5"
+          }
+        },
+        {
+          "client_id": "76694062225-jtd4udkpvnpqlp04jh0eig8o0br00406.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.example",
+            "certificate_hash": "f6de3d7b3ff39a8962c4b1f1b326c7f831b99914"
+          }
+        },
+        {
+          "client_id": "76694062225-mc09ccvelu6g90nj64tr3nphk6tom6lh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.example",
+            "certificate_hash": "1d110d9476b5039272c1ca0a3333ef6694a49b22"
+          }
+        },
+        {
+          "client_id": "76694062225-e08vcmit1e2c962armhchg40mgj98u28.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCN091RFheQSIi4Pvp6SxuKfdptzgpo7Gk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "76694062225-e08vcmit1e2c962armhchg40mgj98u28.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "76694062225-83sphrngb1grl9j73i6bpd1bg0telprb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "np.com.worldlink"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:76694062225:android:1850a279b3337fcc",
+        "android_client_info": {
+          "package_name": "np.com.worldlink.worldlinkflutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "76694062225-ntner7s41c3ql3naf4gttmgrj5stqdpn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "np.com.worldlink.worldlinkflutter",
+            "certificate_hash": "6c8b495a574b9f325838f01aabe9a2d2608f3a57"
+          }
+        },
+        {
+          "client_id": "76694062225-q2ov6duf1crjomo3spsio3i7l2830rgq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "np.com.worldlink.worldlinkflutter",
+            "certificate_hash": "b25cddc378095eba34fa78f21449223d0d78c4c6"
+          }
+        },
+        {
+          "client_id": "76694062225-e08vcmit1e2c962armhchg40mgj98u28.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCN091RFheQSIi4Pvp6SxuKfdptzgpo7Gk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "76694062225-e08vcmit1e2c962armhchg40mgj98u28.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "76694062225-83sphrngb1grl9j73i6bpd1bg0telprb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "np.com.worldlink"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

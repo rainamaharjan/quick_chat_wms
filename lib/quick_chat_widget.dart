@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:quick_chat_wms/preference_manager.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart'
     as webview_flutter_android;
@@ -59,7 +60,7 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
         onMessageReceived: (JavaScriptMessage message) {
           String uniqueId = message.message;
           debugPrint("Received Unique ID: $uniqueId");
-          if (uniqueId != null || uniqueId.isNotEmpty) {
+          if (uniqueId.isNotEmpty) {
             postTokenToApi(uniqueId);
           } else {
             uniqueId = generateUniqueId();
@@ -71,7 +72,7 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
         },
       )
       ..setNavigationDelegate(_createNavigationDelegate())
-      ..loadRequest(Uri.parse(url ?? ''));
+      ..loadRequest(Uri.parse(url));
     _configureFilePicker(_controller);
   }
 
@@ -94,9 +95,9 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
       File file = File(result.files.single.path!);
-      print('Quick Chat -------- File picked: ${file.path}');
+      debugPrint('Quick Chat -------- File picked: ${file.path}');
     } else {
-      print("Quick Chat -------- File pick cancelled");
+      debugPrint("Quick Chat -------- File pick cancelled");
     }
   }
 
@@ -110,7 +111,7 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
 
   Future<NavigationDecision> _handleNavigationRequest(
       NavigationRequest request) async {
-    if (!request.url.contains(url ?? '')) {
+    if (!request.url.contains(url)) {
       _showExternalWebView(request.url);
       return NavigationDecision.prevent;
     }
@@ -174,7 +175,7 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
             .toList();
       }
     } catch (e) {
-      print('Quick Chat -------- Error picking file: $e');
+      debugPrint('Quick Chat -------- Error picking file: $e');
     }
 
     return [];
@@ -259,20 +260,26 @@ class QuickChatWidgetState extends State<QuickChatWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: widget.backgroundColor,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
-          color: widget.appBarBackButtonColor,
-          onPressed: () {
-            Navigator.pop(context);
-          },
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(50), // Increased height
+        child: AppBar(
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_outlined,
+              size: 18,
+              color: widget.appBarBackButtonColor,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          title: Text(
+            widget.appBarTitle,
+            style: TextStyle(color: widget.appBarTitleColor, fontSize: 18),
+          ),
+          centerTitle: true,
+          backgroundColor: widget.appBarBackgroundColor,
         ),
-        title: Text(
-          widget.appBarTitle,
-          style: TextStyle(color: widget.appBarTitleColor),
-        ),
-        centerTitle: true,
-        backgroundColor: widget.appBarBackgroundColor,
       ),
       body: Stack(
         children: [
@@ -303,20 +310,34 @@ class QuickChat {
     Color appBarBackgroundColor = Colors.blueAccent, // Default background color
     Color appBarTitleColor = Colors.white, // Default title color
     Color appBarBackButtonColor = Colors.white, // Default back button color
-  }) {
-    NotificationHandler.initialize();
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => QuickChatWidget(
-            widgetCode: widgetCode ?? '',
-            fcmServerKey: fcmServerKey ?? '',
-            appBarTitle: appBarTitle,
-            appBarBackgroundColor: appBarBackgroundColor,
-            appBarTitleColor: appBarTitleColor,
-            appBarBackButtonColor: appBarBackButtonColor,
-            backgroundColor: backgroundColor),
-      ),
+  }) async {
+    NotificationHandler.initialize(context);
+    PreferencesManager preferencesManager = PreferencesManager();
+
+    await preferencesManager.savePreferences(
+      widgetCode: widgetCode,
+      fcmServerKey: fcmServerKey,
+      backgroundColor: backgroundColor,
+      appBarTitle: appBarTitle,
+      appBarBackgroundColor: appBarBackgroundColor,
+      appBarTitleColor: appBarTitleColor,
+      appBarBackButtonColor: appBarBackgroundColor,
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => QuickChatWidget(
+              widgetCode: widgetCode,
+              fcmServerKey: fcmServerKey,
+              appBarTitle: appBarTitle,
+              appBarBackgroundColor: appBarBackgroundColor,
+              appBarTitleColor: appBarTitleColor,
+              appBarBackButtonColor: appBarBackButtonColor,
+              backgroundColor: backgroundColor),
+        ),
+      );
+    });
   }
 
   static Future<void> resetUser() async {

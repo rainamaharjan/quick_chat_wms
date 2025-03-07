@@ -1,6 +1,6 @@
 name: quick_chat_wms
 description: "Chat Inbox - Quick Connect"
-version: 1.0.1
+version: 2.0.0
 repository: https://github.com/rainamaharjan/quick_chat_wms
 homepage: https://github.com/rainamaharjan/quick_chat_wms
 license : MIT
@@ -34,7 +34,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # To add assets to your package, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

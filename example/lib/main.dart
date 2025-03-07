@@ -52,12 +52,14 @@ class _MyHomePageState extends State<MyHomePage> {
         body: Container(
           child: InkWell(
               onTap: () {
-                QuickChat.init(context, widgetCode: '333e19f3-ef36-4216-8788-674a1817f087',);
+                QuickChat.init(context,
+                    widgetCode: '333e19f3-ef36-4216-8788-674a1817f087',
+                    appBarBackgroundColor: Color(0XFF0066B3));
               },
               child: Center(
                   child: Text(
-                'Click me to navigate',
-              ))),
+                    'Click me to navigate',
+                  ))),
         ));
   }
 }

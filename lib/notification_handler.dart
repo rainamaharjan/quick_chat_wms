@@ -5,11 +5,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:quick_chat_wms/preference_manager.dart';
 import 'package:quick_chat_wms/quick_chat_widget.dart';
 import 'package:http/http.dart' as http;
 
 class NotificationHandler {
-  static Future<void> initialize() async {
+  static Future<void> initialize(BuildContext context) async {
     requestPermission();
     try {
       await Firebase.initializeApp();
@@ -17,15 +18,17 @@ class NotificationHandler {
       print(
           "Quick Chat -------- Firebase not initialized. Make sure to add google-services.json in your app.");
     }
-    getFcmConfigure();
-    initLocalNotifications();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getFcmConfigure(context);
+      initLocalNotifications(context);
+    });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _handleNotificationClick(message.data);
+      _handleNotificationClick(message.data, context);
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _handleNotificationClick(message.data);
+      _handleNotificationClick(message.data, context);
     });
   }
 
@@ -34,18 +37,12 @@ class NotificationHandler {
     final url = Uri.parse(
         // 'https://app.quickconnect.biz/api/api/v1/store-firebase-token');
         'https://wms-uat.worldlink.com.np/api/api/v1/store-firebase-token');
-    // final headers = {
-    //   'Content-Type': 'application/json',
-    // };
 
     final body = {
       'fcm_server_key': fcmServerKey,
       'firebase_token': fcmToken,
       'client_unique_id': uniqueId,
     };
-
-    print("fcmtokenapi $fcmToken");
-    print("fcmtokenapi id $uniqueId");
 
     try {
       final response = await http.post(url, body: body);
@@ -64,7 +61,7 @@ class NotificationHandler {
   static FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  static void getFcmConfigure() async {
+  static void getFcmConfigure(BuildContext context) async {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint(
           "FCM NOTIFICATION ---Foreground message received: ${jsonEncode(message.toMap())}");
@@ -74,7 +71,7 @@ class NotificationHandler {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint(
           "FCM NOTIFICATION ---User tapped the notification: ${jsonEncode(message.toMap())}");
-      _handleNotificationClick(message.data);
+      _handleNotificationClick(message.data, context);
     });
 
     FirebaseMessaging.instance
@@ -83,17 +80,34 @@ class NotificationHandler {
       if (message != null) {
         debugPrint(
             "FCM NOTIFICATION ---App opened from terminated state via notification: ${jsonEncode(message.toMap())}");
-        _handleNotificationClick(message.data);
+        _handleNotificationClick(message.data, context);
       }
     });
   }
 
-  static void _handleNotificationClick(Map<String, dynamic> data) {
-    String? chatId = data['chat_id'];
+  static void _handleNotificationClick(
+      Map<String, dynamic> data, BuildContext context) async {
+    PreferencesManager preferencesManager = PreferencesManager();
 
-    if (chatId != null) {
-      // QuickChat.init(chatId ?? '');
-    }
+    Map<String, dynamic> prefs = await preferencesManager.getPreferences();
+    String widgetCode = prefs['widgetCode'];
+    String fcmServerKey = prefs['fcmServerKey'];
+    Color backgroundColor = prefs['backgroundColor'];
+    String appBarTitle = prefs['appBarTitle'];
+    Color appBarBackgroundColor = prefs['appBarBackgroundColor'];
+    Color appBarTitleColor = prefs['appBarTitleColor'];
+    Color appBarBackButtonColor = prefs['appBarBackButtonColor'];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      QuickChat.init(context,
+          widgetCode: widgetCode,
+          fcmServerKey: fcmServerKey,
+          appBarTitle: appBarTitle,
+          appBarBackgroundColor: appBarBackgroundColor,
+          appBarTitleColor: appBarTitleColor,
+          appBarBackButtonColor: appBarBackButtonColor,
+          backgroundColor: backgroundColor);
+    });
   }
 
   static Future<void> showLocalNotification(RemoteMessage message) async {
@@ -138,7 +152,7 @@ class NotificationHandler {
     );
   }
 
-  static void initLocalNotifications() async {
+  static void initLocalNotifications(BuildContext context) async {
     var androidInitialize =
         const AndroidInitializationSettings('@mipmap/ic_launcher');
     var initializationSettings =
@@ -151,7 +165,7 @@ class NotificationHandler {
             "FCM NOTIFICATION --- init local notification ${response.payload}");
         if (response.payload != null) {
           final Map<String, dynamic> data = jsonDecode(response.payload ?? '');
-          _handleNotificationClick(data);
+          _handleNotificationClick(data, context);
         }
       },
     );

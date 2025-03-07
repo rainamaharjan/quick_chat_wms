@@ -1,3 +1,3 @@
-## 1.0.1
+## 2.0.0
 
-* TODO: Describe initial release.
+* Initial release for quick chat wms.

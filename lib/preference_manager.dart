@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class PreferencesManager {
   Future<void> savePreferences({
     required String widgetCode,
-    required String fcmServerKey,
+    required String oAuthKey,
     required Color backgroundColor,
     required String appBarTitle,
     required Color appBarBackgroundColor,
@@ -14,7 +14,7 @@ class PreferencesManager {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     await prefs.setString('widgetCode', widgetCode);
-    await prefs.setString('fcmServerKey', fcmServerKey);
+    await prefs.setString('oAuthKey', oAuthKey);
     await prefs.setString('backgroundColor', backgroundColor.value.toString());
     await prefs.setString('appBarTitle', appBarTitle);
     await prefs.setString('appBarBackgroundColor', appBarBackgroundColor.value.toString());
@@ -26,7 +26,7 @@ class PreferencesManager {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     String widgetCode = prefs.getString('widgetCode') ?? '';
-    String fcmServerKey = prefs.getString('fcmServerKey') ?? '';
+    String oAuthKey = prefs.getString('oAuthKey') ?? '';
     Color backgroundColor = Color(int.parse(prefs.getString('backgroundColor') ?? '0xFFFFFFFF'));
     String appBarTitle = prefs.getString('appBarTitle') ?? 'Chat With Us';
     Color appBarBackgroundColor = Color(int.parse(prefs.getString('appBarBackgroundColor') ?? '0xFF0000FF'));
@@ -35,7 +35,7 @@ class PreferencesManager {
 
     return {
       'widgetCode': widgetCode,
-      'fcmServerKey': fcmServerKey,
+      'oAuthKey': oAuthKey,
       'backgroundColor': backgroundColor,
       'appBarTitle': appBarTitle,
       'appBarBackgroundColor': appBarBackgroundColor,

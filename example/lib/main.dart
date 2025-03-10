@@ -36,19 +36,21 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Title'),
-          backgroundColor: Colors.blueAccent,
-        ),
-        body: InkWell(
-              onTap: () {
-                QuickChat.init(context,
-                    widgetCode: 'YOUR-WIDGET-CODE',
-                    fcmServerKey: 'YOUR-FCM-SERVER-KEY',
-                    appBarBackgroundColor: const Color(0XFF0066B3));
-              },
-              child: //YOUR Container
-       ),
+      appBar: AppBar(
+        title: const Text('Title'),
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: InkWell(
+        onTap: () {
+          QuickChat.init(context,
+              widgetCode: 'YOUR-WIDGET-CODE',
+              oAuthKey: 'YOUR-KEY',
+              appBarBackgroundColor: const Color(0XFF0066B3));
+        },
+        child: Container(
+            //YOUR CONTAINER
+            ),
+      ),
     );
   }
 }

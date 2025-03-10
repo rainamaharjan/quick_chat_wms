@@ -14,7 +14,7 @@ late WebViewController _controller;
 
 class QuickChatWidget extends StatefulWidget {
   final String widgetCode;
-  final String fcmServerKey;
+  final String oAuthKey;
   final String appBarTitle;
   final Color appBarTitleColor;
   final Color appBarBackgroundColor;
@@ -24,7 +24,7 @@ class QuickChatWidget extends StatefulWidget {
   const QuickChatWidget({
     super.key,
     required this.widgetCode,
-    required this.fcmServerKey,
+    required this.oAuthKey,
     required this.appBarTitle,
     required this.appBarTitleColor,
     required this.backgroundColor,
@@ -40,7 +40,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     with WidgetsBindingObserver {
   String url = '';
   bool isLoading = true;
-  static String fcmServerKey = '';
+  static String oAuthKey = '';
   WebViewController? _externalController;
 
   @override
@@ -48,7 +48,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     super.initState();
     url =
         "http://wms-srm-m02.wlink.com.np:3013/mobileChat.html?widgetId=${widget.widgetCode}";
-    fcmServerKey = widget.fcmServerKey;
+    oAuthKey = widget.oAuthKey;
     postTokenToApi(generateUniqueId());
     WidgetsBinding.instance.addObserver(this);
     _initializeController();
@@ -96,7 +96,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   static Future<void> postTokenToApi(String uniqueId) async {
     await FirebaseMessaging.instance.getToken().then((token) async {
       await NotificationHandler.updateFirebaseToken(
-          token ?? '', uniqueId, fcmServerKey);
+          token ?? '', uniqueId, oAuthKey);
     });
   }
 
@@ -299,7 +299,7 @@ class QuickChat {
   static void init(
     BuildContext context, {
     String widgetCode = '',
-    String fcmServerKey = '',
+    String oAuthKey = '',
     Color backgroundColor = Colors.white, // Default background color
     String appBarTitle = 'Chat With Us', // Default app bar title
     Color appBarBackgroundColor = Colors.blueAccent, // Default background color
@@ -311,7 +311,7 @@ class QuickChat {
 
     await preferencesManager.savePreferences(
       widgetCode: widgetCode,
-      fcmServerKey: fcmServerKey,
+      oAuthKey: oAuthKey,
       backgroundColor: backgroundColor,
       appBarTitle: appBarTitle,
       appBarBackgroundColor: appBarBackgroundColor,
@@ -322,7 +322,7 @@ class QuickChat {
       MaterialPageRoute(
         builder: (context) => QuickChatWidget(
             widgetCode: widgetCode,
-            fcmServerKey: fcmServerKey,
+            oAuthKey: oAuthKey,
             appBarTitle: appBarTitle,
             appBarBackgroundColor: appBarBackgroundColor,
             appBarTitleColor: appBarTitleColor,

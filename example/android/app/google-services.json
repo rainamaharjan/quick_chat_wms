@@ -83,7 +83,7 @@
               "client_id": "76694062225-83sphrngb1grl9j73i6bpd1bg0telprb.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "np.com.worldlink"
+                "bundle_id": "np.com.quickchat"
               }
             }
           ]
@@ -94,7 +94,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:76694062225:android:1850a279b3337fcc",
         "android_client_info": {
-          "package_name": "np.com.worldlink.worldlinkflutter"
+          "package_name": "np.com.quickchat.quickchatflutter"
         }
       },
       "oauth_client": [
@@ -102,7 +102,7 @@
           "client_id": "76694062225-ntner7s41c3ql3naf4gttmgrj5stqdpn.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "np.com.worldlink.worldlinkflutter",
+            "package_name": "np.com.quickchat.quickchatflutter",
             "certificate_hash": "6c8b495a574b9f325838f01aabe9a2d2608f3a57"
           }
         },
@@ -110,7 +110,7 @@
           "client_id": "76694062225-q2ov6duf1crjomo3spsio3i7l2830rgq.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "np.com.worldlink.worldlinkflutter",
+            "package_name": "np.com.quickchat.quickchatflutter",
             "certificate_hash": "b25cddc378095eba34fa78f21449223d0d78c4c6"
           }
         },
@@ -135,7 +135,7 @@
               "client_id": "76694062225-83sphrngb1grl9j73i6bpd1bg0telprb.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "np.com.worldlink"
+                "bundle_id": "np.com.quickchat"
               }
             }
           ]

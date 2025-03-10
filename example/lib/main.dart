@@ -36,30 +36,19 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: FloatingActionButton(
-          child: Icon(Icons.ac_unit),
-          backgroundColor: Colors.blueAccent,
-          onPressed: () {
-            QuickChat.resetUser();
-          },
-        ),
         appBar: AppBar(
-          title: const Text('Chat Inbox'),
+          title: const Text('Title'),
           backgroundColor: Colors.blueAccent,
-          centerTitle: true,
         ),
-        body: Container(
-          child: InkWell(
+        body: InkWell(
               onTap: () {
                 QuickChat.init(context,
-                    widgetCode: '333e19f3-ef36-4216-8788-674a1817f087',
-                    appBarBackgroundColor: Color(0XFF0066B3));
+                    widgetCode: 'YOUR-WIDGET-CODE',
+                    fcmServerKey: 'YOUR-FCM-SERVER-KEY',
+                    appBarBackgroundColor: const Color(0XFF0066B3));
               },
-              child: Center(
-                  child: Text(
-                    'Click me to navigate',
-                  ))),
-        ));
+              child: //YOUR Container
+       ),
+    );
   }
 }

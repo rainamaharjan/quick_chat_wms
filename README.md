@@ -2,11 +2,6 @@
 
 This Flutter package provides an easy-to-integrate chat solution for your mobile app. It is designed to be used for the **Quick Connect** users, allowing users to chat quickly and seamlessly. By integrating this package into your app, you can offer a real-time chat experience for your users, enabling them to communicate effortlessly.
 
-**For Notification** : 
-- Add google-services.json file from firebase console
-- Add await Firebase.initializeApp() in your main.dart file inside main() function just after WidgetsFlutterBinding.ensureInitialized();
-- This enables FCM push notification
-
 
 ## Features
 
@@ -23,7 +18,7 @@ To use this package in your Flutter project, follow these steps:
 
     ```yaml
     dependencies:
-      quick_chat_wms: 2.0.3    ```
+      quick_chat_wms: 3.0.0    ```
 
 2. Run the following command to fetch the package:
 

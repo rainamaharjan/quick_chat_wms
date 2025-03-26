@@ -1,3 +1,5 @@
-## 2.0.3
+## 3.0.0
 
-* Initial release for quick chat wms.
+* Handled real-time messaging.
+* Handled notification
+* Handled logout scenario

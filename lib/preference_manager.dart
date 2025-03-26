@@ -35,17 +35,33 @@ class PreferencesManager {
     return token;
   }
 
+  Future<void> setTargetScreen({required String message}) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('target_screen', message);
+  }
+
+  Future<String> getTargetScreen() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String targetScreen = prefs.getString('target_screen') ?? '';
+    return targetScreen;
+  }
+
+  Future<void> remove(String key) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
+  }
+
   Future<Map<String, dynamic>> getPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
     String widgetCode = prefs.getString('widgetCode') ?? '';
-    Color backgroundColor = Color(
-        int.parse(prefs.getString('backgroundColor') ?? '0xFFFFFFFF'));
+    Color backgroundColor =
+    Color(int.parse(prefs.getString('backgroundColor') ?? '0xFFFFFFFF'));
     String appBarTitle = prefs.getString('appBarTitle') ?? 'Chat With Us';
     Color appBarBackgroundColor = Color(
         int.parse(prefs.getString('appBarBackgroundColor') ?? '0xFF0000FF'));
-    Color appBarTitleColor = Color(
-        int.parse(prefs.getString('appBarTitleColor') ?? '0xFFFFFFFF'));
+    Color appBarTitleColor =
+    Color(int.parse(prefs.getString('appBarTitleColor') ?? '0xFFFFFFFF'));
     Color appBarBackButtonColor = Color(
         int.parse(prefs.getString('appBarBackButtonColor') ?? '0xFFFFFFFF'));
 

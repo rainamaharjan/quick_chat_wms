@@ -1,8 +1,6 @@
 name: quick_chat_wms
 description: "Chat Inbox - Quick Connect"
-version: 2.0.3
-repository: https://github.com/rainamaharjan/quick_chat_wms
-homepage: https://github.com/rainamaharjan/quick_chat_wms
+version: 3.0.0
 license : MIT
 
 environment:
@@ -12,14 +10,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  webview_flutter: ^4.5.0
-  webview_flutter_android: ^3.15.0
-  file_picker: ^7.0.2
-  shared_preferences: ^2.2.2
-  http: ^1.1.0
-  url_launcher: ^6.2.4
-  permission_handler: ^11.0.1
+  connectivity_plus: ^5.0.2
   device_info_plus: ^9.1.2
+  file_picker: ^7.0.2
+  flutter_local_notifications: ^18.0.1
+  http: ^1.1.0
+  permission_handler: ^11.0.1
+  shared_preferences: ^2.2.2
+  url_launcher: ^6.2.4
+  webview_flutter_android: ^3.15.0
+  webview_flutter: ^4.5.0
 
 dev_dependencies:
   flutter_test:

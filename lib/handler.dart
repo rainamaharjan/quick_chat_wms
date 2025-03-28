@@ -104,70 +104,27 @@ class Handler {
     await flutterLocalNotificationsPlugin.initialize(initializationSettings,
         onDidReceiveNotificationResponse:
             (NotificationResponse response) async {
-          QuickChat.handleNotificationOnClick(context);
-        });
-  }
-
-  static Future<ByteArrayAndroidBitmap> _getImageFromUrl(
-      String imageUrl) async {
-    final response = await http.get(Uri.parse(imageUrl));
-    if (response.statusCode == 200) {
-      return ByteArrayAndroidBitmap(response.bodyBytes);
-    } else {
-      throw Exception('Failed to load image');
-    }
-  }
-
-  static Future<void> showQuickChatNotification(
-      Map<String, dynamic> data) async {
-    final body = data['body'] ?? '';
-    if (isUrl(body)) {
-      final imageExt = extractImageExtension(body);
-      if (imageExt != null) {
-        final largeIcon = await _getImageFromUrl(body);
-        await flutterLocalNotificationsPlugin.show(
-          0,
-          data['title'],
-          null,
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              'channel_id',
-              'channel_name',
-              importance: Importance.max,
-              priority: Priority.high,
-              largeIcon: largeIcon,
-              styleInformation: BigPictureStyleInformation(largeIcon),
-            ),
-          ),
-        );
-        return;
-      }
-    }
-    await showLocalNotification(data);
+      QuickChat.handleNotificationOnClick(context);
+    });
   }
 
   static List<String> messages = [];
 
-  static Future<void> showLocalNotification(Map<String, dynamic> data) async {
+  static Future<void> showQuickChatNotification(
+      Map<String, dynamic> data) async {
+    final title = data['title'] ?? '';
     final body = data['body'] ?? '';
-    String content = '';
 
     await flutterLocalNotificationsPlugin.cancel(0);
 
-    if (isUrl(body)) {
-      String fileName = extractFileName(body);
-      content = "📂 $fileName";
-    } else {
-      content = body;
-    }
-    if (!messages.contains(content)) {
-      messages.add(content);
+    if (!messages.contains(body)) {
+      messages.add(body);
     }
 
     await flutterLocalNotificationsPlugin.show(
         0,
-        data['title'] ?? '',
-        content,
+        title,
+        body,
         NotificationDetails(
           android: AndroidNotificationDetails(
             'chat_channel',
@@ -177,7 +134,7 @@ class Handler {
             priority: Priority.high,
             styleInformation: InboxStyleInformation(
               messages,
-              contentTitle: data['title'] ?? '',
+              contentTitle: title,
               summaryText: "Tap to open chat",
             ),
             onlyAlertOnce: true,
@@ -188,23 +145,5 @@ class Handler {
   }
 
   static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
-
-  static bool isUrl(String text) {
-    final urlPattern = RegExp(
-        r'^(https?:\/\/)?(www\.)?[\da-z\.-]+\.[a-z\.]{2,6}([\/\w\.-]*)*\/?(\?[=&\w\.-]*)?(#[\w-]*)?$',
-        caseSensitive: false);
-    return urlPattern.hasMatch(text);
-  }
-
-  static String? extractImageExtension(String url) {
-    final regExp = RegExp(r'\.(jpg|jpeg|png)$', caseSensitive: false);
-    return regExp.firstMatch(url)?.group(1)?.toLowerCase();
-  }
-
-  static String extractFileName(String url) {
-    final regExp = RegExp(r'\/([^/]+\.(?!jpg|jpeg|png)[a-zA-Z0-9]+)$');
-    final match = regExp.firstMatch(url);
-    return match?.group(1) ?? 'Unknown file';
-  }
+      FlutterLocalNotificationsPlugin();
 }

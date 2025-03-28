@@ -60,7 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: InkWell(
         onTap: () {
           QuickChat.init(context,
-              widgetCode: 'YOUR-WIDGET-KEY',
+              widgetCode: '27e985cb-6d15-4cc1-8be8-7e34931fe933',
               appBarBackgroundColor: const Color(0XFF0066B3));
         },
         child: Container(

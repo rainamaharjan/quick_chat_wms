@@ -151,8 +151,6 @@ class Handler {
   static Future<void> showLocalNotification(Map<String, dynamic> data) async {
     final body = data['body'] ?? '';
     String content = '';
-    PreferencesManager preferencesManager = PreferencesManager();
-    String targetScreen = await preferencesManager.getTargetScreen();
 
     await flutterLocalNotificationsPlugin.cancel(0);
 
@@ -186,8 +184,7 @@ class Handler {
             setAsGroupSummary: true,
             groupKey: 'notification_group_key',
           ),
-        ),
-        payload: targetScreen);
+        ));
   }
 
   static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =

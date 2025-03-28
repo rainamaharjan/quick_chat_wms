@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -8,16 +9,15 @@ import 'package:quick_chat_wms/quick_chat_wms.dart';
 import 'notification_service.dart';
 
 @pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  if (QuickChat.isQuickChatNotification(message.data)) {
-    QuickChat.handleQuickChatBackgroundNotification(message.data);
-  }
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  requestPermission();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   runApp(const MyApp());
 }
 
@@ -44,8 +44,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    requestPermission();
-    getFcmConfigure(context);
+
+    getFcmConfigure();
     initNotifications(context);
     QuickChat.initializeNotification(context);
   }
@@ -70,7 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void getFcmConfigure(BuildContext context) async {
+  void getFcmConfigure() async {
     FirebaseMessaging.instance.getToken().then((token) {
       QuickChat.setFcmToken(token);
     });
@@ -78,14 +78,12 @@ class _MyHomePageState extends State<MyHomePage> {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (QuickChat.isQuickChatNotification(message.data)) {
         QuickChat.showQuickChatNotification(message.data);
-        return;
       }
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       if (QuickChat.isQuickChatNotification(message.data)) {
         QuickChat.handleNotificationOnClick(context);
-        return;
       }
     });
 
@@ -95,7 +93,6 @@ class _MyHomePageState extends State<MyHomePage> {
       if (message != null) {
         if (QuickChat.isQuickChatNotification(message.data)) {
           QuickChat.handleNotificationOnClick(context);
-          return;
         }
       }
     });

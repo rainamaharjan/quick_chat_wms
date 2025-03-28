@@ -35,22 +35,6 @@ class PreferencesManager {
     return token;
   }
 
-  Future<void> setTargetScreen({required String message}) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('target_screen', message);
-  }
-
-  Future<String> getTargetScreen() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String targetScreen = prefs.getString('target_screen') ?? '';
-    return targetScreen;
-  }
-
-  Future<void> remove(String key) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove(key);
-  }
-
   Future<Map<String, dynamic>> getPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 

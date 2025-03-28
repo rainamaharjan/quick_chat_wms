@@ -88,8 +88,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         'FlutterWebView',
         onMessageReceived: (JavaScriptMessage message) {
           String uniqueId = message.message;
-          debugPrint("Received Unique ID: $uniqueId");
-          if (uniqueId.isNotEmpty) {
+          if (uniqueId !=null ||uniqueId.isNotEmpty) {
             postTokenToApi(fcmToken, uniqueId);
           } else {
             uniqueId = generateUniqueId();
@@ -111,7 +110,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   }
 
   static Future<void> postTokenToApi(String fcmToken, String uniqueId) async {
-    Handler.updateFirebaseToken(fcmToken, uniqueId);
+
+   await Handler.updateFirebaseToken(fcmToken, uniqueId);
   }
 
   NavigationDelegate _createNavigationDelegate() {
@@ -387,18 +387,10 @@ class QuickChat {
 
   static void handleNotificationOnClick(BuildContext context) async {
     debugPrint("Quick chat ---------- handleNotificationOnClick ");
-    PreferencesManager preferencesManager = PreferencesManager();
-    await preferencesManager.setTargetScreen(message: '');
     Handler.handleNotificationClick(context);
   }
 
   static void initializeNotification(BuildContext context) async {
-    PreferencesManager preferencesManager = PreferencesManager();
-    String? targetScreen = await preferencesManager.getTargetScreen();
-    if (targetScreen == 'inbox') {
-      QuickChat.handleNotificationOnClick(context);
-    }
-
     await Handler.initNotification(context);
   }
 
@@ -414,14 +406,6 @@ class QuickChat {
     _controller = WebViewController();
     PreferencesManager preferencesManager = PreferencesManager();
     await preferencesManager.saveFcmToken(fcmToken: fcmToken ?? '');
-  }
-
-  static handleQuickChatBackgroundNotification(
-      Map<String, dynamic> data) async {
-    QuickChat.showQuickChatNotification(data);
-
-    PreferencesManager preferencesManager = PreferencesManager();
-    await preferencesManager.setTargetScreen(message: 'inbox');
   }
 
   static bool isQuickChatNotification(Map<String, dynamic> data) {

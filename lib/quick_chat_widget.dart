@@ -7,7 +7,7 @@ import 'package:quick_chat_wms/preference_manager.dart';
 import 'package:quick_chat_wms/url_launcher_helper.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart'
-as webview_flutter_android;
+    as webview_flutter_android;
 import 'handler.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -37,17 +37,21 @@ class QuickChatWidget extends StatefulWidget {
 }
 
 class QuickChatWidgetState extends State<QuickChatWidget>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   String url = '';
   bool isLoading = true;
   bool isFilePicking = false;
-  bool isWebViewActive = false;
   late StreamSubscription<ConnectivityResult> _subscription;
   ConnectivityResult _connectionStatus = ConnectivityResult.none;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    isLoading = true;
     _checkConnectivity();
     _subscription = Connectivity()
         .onConnectivityChanged
@@ -64,10 +68,9 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
     isChatScreen = true;
     url =
-    'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=${widget.widgetCode}';
-    _initializeController();
+        'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=${widget.widgetCode}';
 
-    WidgetsBinding.instance.addObserver(this);
+    _initializeController();
   }
 
   Future<void> _checkConnectivity() async {
@@ -88,7 +91,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         'FlutterWebView',
         onMessageReceived: (JavaScriptMessage message) {
           String uniqueId = message.message;
-          if (uniqueId !=null ||uniqueId.isNotEmpty) {
+          if (uniqueId != null || uniqueId.isNotEmpty) {
             postTokenToApi(fcmToken, uniqueId);
           } else {
             uniqueId = generateUniqueId();
@@ -110,13 +113,11 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   }
 
   static Future<void> postTokenToApi(String fcmToken, String uniqueId) async {
-
-   await Handler.updateFirebaseToken(fcmToken, uniqueId);
+    await Handler.updateFirebaseToken(fcmToken, uniqueId);
   }
 
   NavigationDelegate _createNavigationDelegate() {
     return NavigationDelegate(
-      onPageStarted: _onPageStarted,
       onNavigationRequest: _handleNavigationRequest,
       onPageFinished: _onPageFinished,
     );
@@ -135,16 +136,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     return NavigationDecision.navigate;
   }
 
-  Future<void> _onPageStarted(String url) async {
-    if (mounted) {
-      setState(() {
-        isLoading = true;
-        isWebViewActive = true;
-      });
-    }
-  }
-
   Future<void> _onPageFinished(String url) async {
+    await Future.delayed(const Duration(milliseconds: 500));
     _controller.runJavaScript("console.log('JavaScript injected');"
         "if(document.querySelector('meta[name=\"viewport\"]')) { "
         "document.querySelector('meta[name=\"viewport\"]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');"
@@ -160,11 +153,9 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         "    FlutterWebView.postMessage(uniqueId);"
         "  }"
         "}");
-
     if (mounted) {
       setState(() {
         isLoading = false;
-        isWebViewActive = false;
       });
     }
   }
@@ -172,7 +163,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   Future<void> _configureFilePicker() async {
     if (Platform.isAndroid) {
       final androidController = _controller.platform
-      as webview_flutter_android.AndroidWebViewController;
+          as webview_flutter_android.AndroidWebViewController;
       await androidController.setOnShowFileSelector(_androidFilePicker);
     }
   }
@@ -199,7 +190,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       if (result != null && result.files.isNotEmpty) {
         return result.files
             .map((file) =>
-            Uri.file(file.path!).toString()) // Ensures non-null path
+                Uri.file(file.path!).toString()) // Ensures non-null path
             .toList();
       }
       setState(() {
@@ -283,8 +274,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     WidgetsBinding.instance.removeObserver(this);
     isChatScreen = false;
     _subscription.cancel();
-    _controller.clearCache();
-    _controller.reload();
+    _controller = WebViewController();
+    // _controller.clearCache();
     super.dispose();
   }
 
@@ -320,32 +311,33 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         ),
         body: isConnected
             ? Stack(
-          children: [
-            WebViewWidget(controller: _controller),
-            if (isLoading)
-              Center(
-                child: CircularProgressIndicator(
-                  color: widget.appBarBackgroundColor,
-                ),
-              ),
-          ],
-        )
+                children: [
+                  WebViewWidget(controller: _controller),
+                  if (isLoading)
+                    Container(
+                      color: Colors.white, // Full-page background
+                      child: const Center(
+                          child:
+                              CircularProgressIndicator()), // Full-page loader
+                    ),
+                ],
+              )
             : Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                    style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    "No internet connection"),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: _checkConnectivity,
-                  child: const Text("Retry"),
-                )
-              ],
-            )),
+                child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      "No internet connection"),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: _checkConnectivity,
+                    child: const Text("Retry"),
+                  )
+                ],
+              )),
       ),
     );
   }
@@ -353,14 +345,14 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
 class QuickChat {
   static void init(
-      BuildContext context, {
-        String widgetCode = '',
-        Color backgroundColor = Colors.white, // Default background color
-        String appBarTitle = 'Chat With Us', // Default app bar title
-        Color appBarBackgroundColor = Colors.blueAccent, // Default background color
-        Color appBarTitleColor = Colors.white, // Default title color
-        Color appBarBackButtonColor = Colors.white, // Default back button color
-      }) async {
+    BuildContext context, {
+    String widgetCode = '',
+    Color backgroundColor = Colors.white, // Default background color
+    String appBarTitle = 'Chat With Us', // Default app bar title
+    Color appBarBackgroundColor = Colors.blueAccent, // Default background color
+    Color appBarTitleColor = Colors.white, // Default title color
+    Color appBarBackButtonColor = Colors.white, // Default back button color
+  }) async {
     debugPrint("Quick chat ---------- start chat");
     PreferencesManager preferencesManager = PreferencesManager();
 

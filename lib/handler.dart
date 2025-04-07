@@ -99,6 +99,7 @@ class Handler {
   static Future<void> initNotification(BuildContext context) async {
     const initializationSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings()
     );
 
     await flutterLocalNotificationsPlugin.initialize(initializationSettings,
@@ -141,6 +142,8 @@ class Handler {
             setAsGroupSummary: true,
             groupKey: 'notification_group_key',
           ),
+          iOS: DarwinNotificationDetails(
+          )
         ));
   }
 

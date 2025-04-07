@@ -10,10 +10,12 @@ import 'package:http/http.dart' as http;
 
 class Handler {
   static Future<void> updateFirebaseToken(
-      String fcmToken, String uniqueId) async {
+      String username, String email, String fcmToken, String uniqueId) async {
     final url = Uri.parse(
         'https://app.quickconnect.biz/api/api/v1/store-firebase-token');
     final body = {
+      'user_name': username,
+      'email': email,
       'firebase_token': fcmToken,
       'client_unique_id': uniqueId,
     };
@@ -80,12 +82,12 @@ class Handler {
     messages.clear();
     PreferencesManager preferencesManager = PreferencesManager();
     Map<String, dynamic> prefs = await preferencesManager.getPreferences();
-    String widgetCode = prefs['widgetCode'];
-    Color backgroundColor = prefs['backgroundColor'];
-    String appBarTitle = prefs['appBarTitle'];
-    Color appBarBackgroundColor = prefs['appBarBackgroundColor'];
-    Color appBarTitleColor = prefs['appBarTitleColor'];
-    Color appBarBackButtonColor = prefs['appBarBackButtonColor'];
+    String widgetCode = prefs['widget_code'];
+    Color backgroundColor = prefs['background_color'];
+    String appBarTitle = prefs['app_bar_title'];
+    Color appBarBackgroundColor = prefs['app_bar_background_color'];
+    Color appBarTitleColor = prefs['app_bar_title_color'];
+    Color appBarBackButtonColor = prefs['app_bar_back_button_color'];
 
     QuickChat.init(context,
         widgetCode: widgetCode,

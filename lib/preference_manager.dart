@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferencesManager {
+  static const _keyWidgetCode = 'widget_code';
+  static const _keyBackgroundColor = 'background_color';
+  static const _keyAppBarTitle = 'app_bar_title';
+  static const _keyAppBarBackgroundColor = 'app_bar_background_color';
+  static const _keyAppBarTitleColor = 'app_bar_title_color';
+  static const _keyAppBarBackButtonColor = 'app_bar_back_button_color';
+  static const _keyFcmToken = 'fcm_token';
+  static const _keyUserName = 'user_name';
+  static const _keyEmail = 'email';
+
   Future<void> savePreferences({
     required String widgetCode,
     required Color backgroundColor,
@@ -10,52 +20,65 @@ class PreferencesManager {
     required Color appBarTitleColor,
     required Color appBarBackButtonColor,
   }) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString('widgetCode', widgetCode);
-    await prefs.setString('backgroundColor', backgroundColor.value.toString());
-    await prefs.setString('appBarTitle', appBarTitle);
-    await prefs.setString(
-        'appBarBackgroundColor', appBarBackgroundColor.value.toString());
-    await prefs.setString(
-        'appBarTitleColor', appBarTitleColor.value.toString());
-    await prefs.setString(
-        'appBarBackButtonColor', appBarBackButtonColor.value.toString());
-  }
-
-  Future<void> saveFcmToken({required String fcmToken}) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    await prefs.setString('fcm_token', fcmToken);
-  }
-
-  Future<String> getFcmToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String token = prefs.getString('fcm_token') ?? '';
-    return token;
+    await prefs.setString(_keyWidgetCode, widgetCode);
+    await prefs.setInt(_keyBackgroundColor, backgroundColor.value);
+    await prefs.setString(_keyAppBarTitle, appBarTitle);
+    await prefs.setInt(_keyAppBarBackgroundColor, appBarBackgroundColor.value);
+    await prefs.setInt(_keyAppBarTitleColor, appBarTitleColor.value);
+    await prefs.setInt(_keyAppBarBackButtonColor, appBarBackButtonColor.value);
   }
 
   Future<Map<String, dynamic>> getPreferences() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    String widgetCode = prefs.getString('widgetCode') ?? '';
-    Color backgroundColor =
-    Color(int.parse(prefs.getString('backgroundColor') ?? '0xFFFFFFFF'));
-    String appBarTitle = prefs.getString('appBarTitle') ?? 'Chat With Us';
-    Color appBarBackgroundColor = Color(
-        int.parse(prefs.getString('appBarBackgroundColor') ?? '0xFF0000FF'));
-    Color appBarTitleColor =
-    Color(int.parse(prefs.getString('appBarTitleColor') ?? '0xFFFFFFFF'));
-    Color appBarBackButtonColor = Color(
-        int.parse(prefs.getString('appBarBackButtonColor') ?? '0xFFFFFFFF'));
+    final prefs = await SharedPreferences.getInstance();
 
     return {
-      'widgetCode': widgetCode,
-      'backgroundColor': backgroundColor,
-      'appBarTitle': appBarTitle,
-      'appBarBackgroundColor': appBarBackgroundColor,
-      'appBarTitleColor': appBarTitleColor,
-      'appBarBackButtonColor': appBarBackButtonColor,
+      'widget_code': prefs.getString(_keyWidgetCode) ?? '',
+      'background_color':
+          Color(prefs.getInt(_keyBackgroundColor) ?? 0xFFFFFFFF),
+      'app_bar_title': prefs.getString(_keyAppBarTitle) ?? 'Chat With Us',
+      'app_bar_background_color':
+          Color(prefs.getInt(_keyAppBarBackgroundColor) ?? 0xFF0000FF),
+      'app_bar_title_color':
+          Color(prefs.getInt(_keyAppBarTitleColor) ?? 0xFFFFFFFF),
+      'app_bar_back_button_color':
+          Color(prefs.getInt(_keyAppBarBackButtonColor) ?? 0xFFFFFFFF),
     };
+  }
+
+  Future<void> saveFcmToken({required String fcmToken}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyFcmToken, fcmToken);
+  }
+
+  Future<String> getFcmToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyFcmToken) ?? '';
+  }
+
+  Future<void> setUserName({required String username}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserName, username);
+  }
+
+  Future<String> getUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyUserName) ?? '';
+  }
+
+  Future<void> setEmail({required String email}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyEmail, email);
+  }
+
+  Future<String> getEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyEmail) ?? '';
+  }
+
+  Future<void> clearAllPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   }
 }

@@ -69,7 +69,6 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     isChatScreen = true;
     url =
         'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=${widget.widgetCode}';
-
     _initializeController();
   }
 
@@ -83,6 +82,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   void _initializeController() async {
     PreferencesManager preferencesManager = PreferencesManager();
     String fcmToken = await preferencesManager.getFcmToken();
+    String userName = await preferencesManager.getUserName();
+    String email = await preferencesManager.getEmail();
     _controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.transparent)
@@ -92,10 +93,10 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         onMessageReceived: (JavaScriptMessage message) {
           String uniqueId = message.message;
           if (uniqueId != null || uniqueId.isNotEmpty) {
-            postTokenToApi(fcmToken, uniqueId);
+            postTokenToApi(userName, email, fcmToken, uniqueId);
           } else {
             uniqueId = generateUniqueId();
-            postTokenToApi(fcmToken, uniqueId);
+            postTokenToApi(userName, email, fcmToken, uniqueId);
           }
         },
       )
@@ -112,8 +113,9 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         "${now.millisecond.toString().padLeft(3, '0')}";
   }
 
-  static Future<void> postTokenToApi(String fcmToken, String uniqueId) async {
-    await Handler.updateFirebaseToken(fcmToken, uniqueId);
+  static Future<void> postTokenToApi(
+      String username, String email, String fcmToken, String uniqueId) async {
+    await Handler.updateFirebaseToken(username, email, fcmToken, uniqueId);
   }
 
   NavigationDelegate _createNavigationDelegate() {
@@ -400,6 +402,16 @@ class QuickChat {
     await preferencesManager.saveFcmToken(fcmToken: fcmToken ?? '');
   }
 
+  static void setUserName(String? username) async {
+    PreferencesManager preferencesManager = PreferencesManager();
+    await preferencesManager.setUserName(username: username ?? '');
+  }
+
+  static void setEmail(String? email) async {
+    PreferencesManager preferencesManager = PreferencesManager();
+    await preferencesManager.setEmail(email: email ?? '');
+  }
+
   static bool isQuickChatNotification(Map<String, dynamic> data) {
     debugPrint("Quick chat ----------is quick chat notification");
     String clickAction = data['click_action'];
@@ -413,15 +425,8 @@ class QuickChat {
   static Future<void> resetUser() async {
     debugPrint("Quick chat ----------reset user");
     PreferencesManager preferencesManager = PreferencesManager();
-    await Handler.updateFirebaseToken('', '');
-    await preferencesManager.saveFcmToken(fcmToken: '');
-    await preferencesManager.savePreferences(
-        widgetCode: '',
-        backgroundColor: Colors.blue,
-        appBarTitle: 'appBarTitle',
-        appBarBackgroundColor: Colors.blue,
-        appBarTitleColor: Colors.white,
-        appBarBackButtonColor: Colors.white);
+    preferencesManager.clearAllPreferences();
+    await Handler.updateFirebaseToken('', '', '', '');
     try {
       await _controller.runJavaScript("localStorage.clear();");
       await _controller.reload();

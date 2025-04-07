@@ -1,6 +1,6 @@
 name: quick_chat_wms
 description: "Chat Inbox - Quick Connect"
-version: 3.0.3
+version: 3.0.4
 license : MIT
 
 environment:

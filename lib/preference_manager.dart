@@ -90,6 +90,14 @@ class PreferencesManager {
 
   Future<void> clearAllPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.setString(_keyWidgetCode, '');
+    await prefs.setInt(_keyBackgroundColor, 0);
+    await prefs.setString(_keyAppBarTitle, '');
+    await prefs.setInt(_keyAppBarBackgroundColor, 0);
+    await prefs.setInt(_keyAppBarTitleColor, 0);
+    await prefs.setInt(_keyAppBarBackButtonColor, 0);
+    await prefs.setString(_keyFcmToken, '');
+    await prefs.setString(_keyUserName, '');
+    await prefs.setString(_keyEmail, '');
   }
 }

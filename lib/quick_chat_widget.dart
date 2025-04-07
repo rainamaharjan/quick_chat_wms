@@ -5,13 +5,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:quick_chat_wms/preference_manager.dart';
 import 'package:quick_chat_wms/url_launcher_helper.dart';
+import 'package:quick_chat_wms/webview_service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart'
     as webview_flutter_android;
 import 'handler.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-late WebViewController _controller;
 bool isChatScreen = false;
 
 class QuickChatWidget extends StatefulWidget {
@@ -58,8 +58,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         .listen((ConnectivityResult result) {
       if (_connectionStatus == ConnectivityResult.none &&
           result != ConnectivityResult.none) {
-        _controller.clearCache();
-        _controller.reload();
+        WebViewService().controller.clearCache();
+        WebViewService().controller.reload();
       }
       setState(() {
         _connectionStatus = result;
@@ -84,7 +84,10 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     String fcmToken = await preferencesManager.getFcmToken();
     String userName = await preferencesManager.getUserName();
     String email = await preferencesManager.getEmail();
-    _controller
+
+    WebViewService().controller = WebViewController();
+    checkAndResetLocalStorage();
+    WebViewService().controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.transparent)
       ..enableZoom(false)
@@ -103,6 +106,15 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       ..setNavigationDelegate(_createNavigationDelegate())
       ..loadRequest(Uri.parse(url));
     await _configureFilePicker();
+  }
+
+  void checkAndResetLocalStorage() async {
+    PreferencesManager preferencesManager = PreferencesManager();
+    final shouldReset = await preferencesManager.getLocalStorageResetFlag();
+    if (shouldReset) {
+      await WebViewService().clearLocalStorage();
+      await preferencesManager.setLocalStorageResetFlag(reset: false);
+    }
   }
 
   String generateUniqueId() {
@@ -140,7 +152,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
   Future<void> _onPageFinished(String url) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    _controller.runJavaScript("console.log('JavaScript injected');"
+    WebViewService().runJS("console.log('JavaScript injected');"
         "if(document.querySelector('meta[name=\"viewport\"]')) { "
         "document.querySelector('meta[name=\"viewport\"]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');"
         "} else { "
@@ -164,7 +176,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
   Future<void> _configureFilePicker() async {
     if (Platform.isAndroid) {
-      final androidController = _controller.platform
+      final androidController = WebViewService().controller.platform
           as webview_flutter_android.AndroidWebViewController;
       await androidController.setOnShowFileSelector(_androidFilePicker);
     }
@@ -252,8 +264,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         isFilePicking = false;
       });
       return false;
-    } else if (await _controller.canGoBack()) {
-      _controller.goBack();
+    } else if (await WebViewService().controller.canGoBack()) {
+      WebViewService().controller.goBack();
       return false;
     } else {
       Navigator.pop(context);
@@ -265,7 +277,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (!isFilePicking) {
-        _controller.reload();
+        WebViewService().controller.reload();
       }
       isFilePicking = false;
     }
@@ -276,8 +288,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     WidgetsBinding.instance.removeObserver(this);
     isChatScreen = false;
     _subscription.cancel();
-    _controller = WebViewController();
-    // _controller.clearCache();
+    // WebViewService().clearController();
     super.dispose();
   }
 
@@ -314,7 +325,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         body: isConnected
             ? Stack(
                 children: [
-                  WebViewWidget(controller: _controller),
+                  WebViewWidget(controller: WebViewService().controller),
                   if (isLoading)
                     Container(
                       color: Colors.white, // Full-page background
@@ -397,7 +408,6 @@ class QuickChat {
   }
 
   static void setFcmToken(String? fcmToken) async {
-    _controller = WebViewController();
     PreferencesManager preferencesManager = PreferencesManager();
     await preferencesManager.saveFcmToken(fcmToken: fcmToken ?? '');
   }
@@ -423,16 +433,10 @@ class QuickChat {
   }
 
   static Future<void> resetUser() async {
-    debugPrint("Quick chat ----------reset user");
     PreferencesManager preferencesManager = PreferencesManager();
     preferencesManager.clearAllPreferences();
+    preferencesManager.setLocalStorageResetFlag(reset: true);
     await Handler.updateFirebaseToken('', '', '', '');
-    try {
-      await _controller.runJavaScript("localStorage.clear();");
-      await _controller.reload();
-      debugPrint("------- local storage cleared --------");
-    } catch (e) {
-      debugPrint("------- no local storage -------- $e");
-    }
+    debugPrint("Quick chat ----------reset user");
   }
 }

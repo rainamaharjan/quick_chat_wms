@@ -11,6 +11,7 @@ class PreferencesManager {
   static const _keyFcmToken = 'fcm_token';
   static const _keyUserName = 'user_name';
   static const _keyEmail = 'email';
+  static const _keyResetLocalStorage = 'reset_local_storage';
 
   Future<void> savePreferences({
     required String widgetCode,
@@ -75,6 +76,16 @@ class PreferencesManager {
   Future<String> getEmail() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyEmail) ?? '';
+  }
+
+  Future<bool> setLocalStorageResetFlag({required bool reset}) async {
+    final prefs = await SharedPreferences.getInstance();
+    return await prefs.setBool(_keyResetLocalStorage, reset);
+  }
+
+  Future<bool> getLocalStorageResetFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyResetLocalStorage) ?? false;
   }
 
   Future<void> clearAllPreferences() async {

@@ -10,7 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  quick_chat_wms: 3.0.5
+  quick_chat_wms:
+    path: ../
   firebase_messaging: ^14.9.2
   firebase_core: ^2.31.0
   firebase_crashlytics: ^3.5.5

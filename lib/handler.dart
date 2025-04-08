@@ -12,7 +12,7 @@ class Handler {
   static Future<void> updateFirebaseToken(
       String username, String email, String fcmToken, String uniqueId) async {
     final url = Uri.parse(
-        'https://app.quickconnect.biz/api/api/v1/store-firebase-token');
+        'https://wms-uat.worldlink.com.np/api/api/v1/store-firebase-token');
     final body = {
       'user_name': username,
       'email': email,

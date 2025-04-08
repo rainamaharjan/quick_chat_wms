@@ -68,7 +68,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
     isChatScreen = true;
     url =
-        'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=${widget.widgetCode}';
+        'https://wms-uat.worldlink.com.np/chat-sdk-script/mobileChat.html?widgetId=${widget.widgetCode}';
     _initializeController();
   }
 

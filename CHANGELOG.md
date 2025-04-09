@@ -1,5 +1,5 @@
-## 3.1.0
+## 3.1.1
 
 * Handled real-time messaging.
 * Handled notification
-* Handled logout scenario
+* Handled logout 

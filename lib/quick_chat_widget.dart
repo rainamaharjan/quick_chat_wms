@@ -87,6 +87,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
     WebViewService().controller = WebViewController();
     checkAndResetLocalStorage();
+    WebViewService().controller.removeJavaScriptChannel('FlutterWebView');
     WebViewService().controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.transparent)

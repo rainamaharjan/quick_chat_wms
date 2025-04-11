@@ -459,10 +459,11 @@ packages:
   quick_chat_wms:
     dependency: "direct main"
     description:
-      path: ".."
-      relative: true
-    source: path
-    version: "3.0.4"
+      name: quick_chat_wms
+      sha256: "637d4962e73cb92f56c8f1e40fa7b0eeaa23ec370ad9fc571088d0586f3d45f6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.5"
   shared_preferences:
     dependency: transitive
     description:

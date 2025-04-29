@@ -1,14 +1,9 @@
 import 'dart:async';
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:quick_chat_wms/preference_manager.dart';
-import 'package:quick_chat_wms/url_launcher_helper.dart';
 import 'package:quick_chat_wms/webview_service.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart'
-    as webview_flutter_android;
+import 'package:url_launcher/url_launcher.dart';
 import 'handler.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -40,7 +35,6 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   String url = '';
   bool isLoading = true;
-  bool isFilePicking = false;
   late StreamSubscription<ConnectivityResult> _subscription;
   ConnectivityResult _connectionStatus = ConnectivityResult.none;
 
@@ -58,7 +52,6 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         .listen((ConnectivityResult result) {
       if (_connectionStatus == ConnectivityResult.none &&
           result != ConnectivityResult.none) {
-        WebViewService().controller.clearCache();
         WebViewService().controller.reload();
       }
       setState(() {
@@ -72,6 +65,10 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     _initializeController();
   }
 
+  String fcmToken = '';
+  String email = '';
+  String userName = '';
+
   Future<void> _checkConnectivity() async {
     final result = await Connectivity().checkConnectivity();
     setState(() {
@@ -81,32 +78,9 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
   void _initializeController() async {
     PreferencesManager preferencesManager = PreferencesManager();
-    String fcmToken = await preferencesManager.getFcmToken();
-    String userName = await preferencesManager.getUserName();
-    String email = await preferencesManager.getEmail();
-
-    WebViewService().controller = WebViewController();
-    checkAndResetLocalStorage();
-    WebViewService().controller.removeJavaScriptChannel('FlutterWebView');
-    WebViewService().controller
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.transparent)
-      ..enableZoom(false)
-      ..addJavaScriptChannel(
-        'FlutterWebView',
-        onMessageReceived: (JavaScriptMessage message) {
-          String uniqueId = message.message;
-          if (uniqueId != null || uniqueId.isNotEmpty) {
-            postTokenToApi(userName, email, fcmToken, uniqueId);
-          } else {
-            uniqueId = generateUniqueId();
-            postTokenToApi(userName, email, fcmToken, uniqueId);
-          }
-        },
-      )
-      ..setNavigationDelegate(_createNavigationDelegate())
-      ..loadRequest(Uri.parse(url));
-    await _configureFilePicker();
+    fcmToken = await preferencesManager.getFcmToken();
+    userName = await preferencesManager.getUserName();
+    email = await preferencesManager.getEmail();
   }
 
   void checkAndResetLocalStorage() async {
@@ -131,43 +105,27 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     await Handler.updateFirebaseToken(username, email, fcmToken, uniqueId);
   }
 
-  NavigationDelegate _createNavigationDelegate() {
-    return NavigationDelegate(
-      onNavigationRequest: _handleNavigationRequest,
-      onPageFinished: _onPageFinished,
-    );
-  }
-
-  Future<NavigationDecision> _handleNavigationRequest(
-      NavigationRequest request) async {
-    if (request.url.contains('google.com')) {
-      return NavigationDecision.prevent; // Prevent in-app navigation
-    }
-
-    if (!request.url.contains(url)) {
-      _showExternalWebView(request.url);
-      return NavigationDecision.prevent;
-    }
-    return NavigationDecision.navigate;
-  }
-
   Future<void> _onPageFinished(String url) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    WebViewService().runJS("console.log('JavaScript injected');"
-        "if(document.querySelector('meta[name=\"viewport\"]')) { "
-        "document.querySelector('meta[name=\"viewport\"]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');"
-        "} else { "
-        "var meta = document.createElement('meta');"
-        "meta.name = 'viewport';"
-        "meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';"
-        "document.head.appendChild(meta);"
-        "}"
-        "if(window.localStorage) {"
-        "  var uniqueId = localStorage.getItem('uniqueId');"
-        "  if (uniqueId) {"
-        "    FlutterWebView.postMessage(uniqueId);"
-        "  }"
-        "}");
+    WebViewService().runJS("""
+    (function() {
+      if(document.querySelector('meta[name="viewport"]')) {
+        document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+      } else {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        document.head.appendChild(meta);
+      }
+
+      if(window.localStorage) {
+        var uniqueId = localStorage.getItem('uniqueId');
+        if (uniqueId) {
+          window.flutter_inappwebview.callHandler('FlutterWebView', uniqueId);
+        }
+      }
+    })();
+  """);
     if (mounted) {
       setState(() {
         isLoading = false;
@@ -175,113 +133,20 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     }
   }
 
-  Future<void> _configureFilePicker() async {
-    if (Platform.isAndroid) {
-      final androidController = WebViewService().controller.platform
-          as webview_flutter_android.AndroidWebViewController;
-      await androidController.setOnShowFileSelector(_androidFilePicker);
-    }
-  }
-
-  Future<List<String>> _androidFilePicker(
-      webview_flutter_android.FileSelectorParams params) async {
-    try {
-      await Handler.requestStoragePermission();
-      setState(() {
-        isFilePicking = true;
-      });
-
-      final fileType = _determineFileType(params.acceptTypes);
-      final allowedExtensions = _extractAllowedExtensions(params.acceptTypes);
-
-      var result = await FilePicker.platform.pickFiles(
-        allowMultiple: false,
-        type: fileType,
-        allowedExtensions: allowedExtensions?.isNotEmpty == true
-            ? allowedExtensions?.toSet().toList()
-            : null,
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        return result.files
-            .map((file) =>
-                Uri.file(file.path!).toString()) // Ensures non-null path
-            .toList();
-      }
-      setState(() {
-        isFilePicking = false;
-      });
-    } catch (e) {
-      setState(() {
-        isFilePicking = false;
-      });
-      debugPrint('Quick Chat -------- Error picking file: $e');
-    }
-
-    return [];
-  }
-
-  FileType _determineFileType(List<String> acceptTypes) {
-    if (acceptTypes.contains('image/*')) return FileType.image;
-    if (acceptTypes.contains('application/pdf')) return FileType.custom;
-    return FileType.any;
-  }
-
-  List<String>? _extractAllowedExtensions(List<String> acceptTypes) {
-    final extensions = <String>[];
-    for (var accept in acceptTypes) {
-      for (var mime in accept.split(',')) {
-        switch (mime.trim()) {
-          case 'image/*':
-            extensions.addAll(['jpg', 'jpeg', 'png', 'gif']);
-            break;
-          case 'application/pdf':
-            extensions.add('pdf');
-            break;
-          case 'application/msword':
-          case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-            extensions.addAll(['doc', 'docx']);
-            break;
-          default:
-            break;
-        }
-      }
-    }
-
-    return extensions.isNotEmpty ? extensions : null;
-  }
-
-  void _showExternalWebView(String url) {
-    Uri uri = Uri.parse(url);
-    if (uri.scheme != 'https' && uri.scheme != 'http') {
-      return;
-    }
-    URLLauncherHelper.launchURL(url);
-  }
-
-  Future<bool> _onBackPressed(BuildContext context) async {
-    if (isFilePicking) {
-      setState(() {
-        isFilePicking = false;
-      });
-      return false;
-    } else if (await WebViewService().controller.canGoBack()) {
-      WebViewService().controller.goBack();
-      return false;
+  void _launchURL(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      Navigator.pop(context);
-      return false;
+      debugPrint("❌ Could not launch $url");
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (!isFilePicking) {
         WebViewService().controller.reload();
       }
-      isFilePicking = false;
-    }
   }
 
   @override
@@ -289,70 +154,102 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     WidgetsBinding.instance.removeObserver(this);
     isChatScreen = false;
     _subscription.cancel();
-    // WebViewService().clearController();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     bool isConnected = _connectionStatus != ConnectivityResult.none;
-    return WillPopScope(
-      onWillPop: () async {
-        return await _onBackPressed(context);
-      },
-      child: Scaffold(
-        backgroundColor: widget.backgroundColor,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(50), // Increased height
-          child: AppBar(
-            leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back_ios_outlined,
-                size: 18,
-                color: widget.appBarBackButtonColor,
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+    return Scaffold(
+      backgroundColor: widget.backgroundColor,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(50),
+        child: AppBar(
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_outlined,
+              size: 18,
+              color: widget.appBarBackButtonColor,
             ),
-            title: Text(
-              widget.appBarTitle,
-              style: TextStyle(color: widget.appBarTitleColor, fontSize: 18),
-            ),
-            centerTitle: true,
-            backgroundColor: widget.appBarBackgroundColor,
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
+          title: Text(
+            widget.appBarTitle,
+            style: TextStyle(color: widget.appBarTitleColor, fontSize: 18),
+          ),
+          centerTitle: true,
+          backgroundColor: widget.appBarBackgroundColor,
         ),
-        body: isConnected
-            ? Stack(
-                children: [
-                  WebViewWidget(controller: WebViewService().controller),
-                  if (isLoading)
-                    Container(
-                      color: Colors.white, // Full-page background
-                      child: const Center(
-                          child:
-                              CircularProgressIndicator()), // Full-page loader
-                    ),
-                ],
-              )
-            : Center(
-                child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      "No internet connection"),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: _checkConnectivity,
-                    child: const Text("Retry"),
-                  )
-                ],
-              )),
       ),
+      body: isConnected
+          ? Stack(
+              children: [
+                InAppWebView(
+                  initialUrlRequest:
+                      URLRequest(url: WebUri.uri(Uri.parse(url))),
+                  initialSettings: InAppWebViewSettings(
+                    useOnLoadResource: true,
+                    useHybridComposition: true,
+                    clearCache: true,
+                    cacheEnabled: false,
+                    cacheMode: CacheMode.LOAD_NO_CACHE,
+                  ),
+                  onWebViewCreated: (controller) {
+                    WebViewService().controller = controller;
+                    controller.addJavaScriptHandler(
+                      handlerName: 'FlutterWebView',
+                      callback: (args) {
+                        String uniqueId = args.first;
+                        if (uniqueId.isNotEmpty) {
+                          postTokenToApi(userName, email, fcmToken, uniqueId);
+                        } else {
+                          uniqueId = generateUniqueId();
+                          postTokenToApi(userName, email, fcmToken, uniqueId);
+                        }
+                      },
+                    );
+                  },
+                  shouldOverrideUrlLoading:
+                      (controller, navigationAction) async {
+                    final uri = navigationAction.request.url;
+                    if (uri != null && !uri.toString().contains(url)) {
+                      _launchURL(uri.toString());
+                      return NavigationActionPolicy.CANCEL;
+                    }
+                    return NavigationActionPolicy.ALLOW;
+                  },
+                  onLoadStop: (controller, url) async {
+                    await _onPageFinished(url.toString());
+                  },
+                ),
+                if (isLoading)
+                  Container(
+                    color: Colors.white,
+                    child: Center(
+                        child: CircularProgressIndicator(
+                      color: widget.backgroundColor,
+                    )),
+                  ),
+              ],
+            )
+          : Center(
+              child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    "No internet connection"),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: _checkConnectivity,
+                  child: const Text("Retry"),
+                )
+              ],
+            )),
     );
   }
 }

@@ -15,10 +15,10 @@ This Flutter package provides an easy-to-integrate chat solution for your mobile
 To use this package in your Flutter project, follow these steps:
 
 1. Add the package to your `pubspec.yaml` file:
-
+   
     ```yaml
     dependencies:
-      quick_chat_wms: 3.1.2
+      quick_chat_wms: 3.1.3
 
 2. Run the following command to fetch the package:
 

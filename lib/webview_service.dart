@@ -1,5 +1,5 @@
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 class WebViewService {
   static final WebViewService _instance = WebViewService._internal();
@@ -8,9 +8,8 @@ class WebViewService {
 
   WebViewService._internal();
 
-  WebViewController? _controller;
-
-  set controller(WebViewController controller) {
+  InAppWebViewController? _controller;
+  set controller(InAppWebViewController controller) {
     _controller ??= controller;
   }
 
@@ -20,8 +19,8 @@ class WebViewService {
 
   Future<void> clearLocalStorage() async {
     try {
-      await _controller!.runJavaScript("localStorage.clear();");
-      await _controller!.reload();
+      await _controller?.evaluateJavascript(source: "localStorage.clear();");
+      await _controller?.reload();
       debugPrint("✅ localStorage cleared and WebView reloaded.");
     } catch (e) {
       debugPrint("❌ Error clearing localStorage: $e");
@@ -31,13 +30,13 @@ class WebViewService {
   Future<void> runJS(String js) async {
     if (_controller == null) return;
     try {
-      await _controller!.runJavaScript(js);
+      await _controller?.evaluateJavascript(source: js);
     } catch (e) {
       debugPrint("❌ JS execution error: $e");
     }
   }
 
-  WebViewController get controller {
+  InAppWebViewController get controller {
     assert(_controller != null, 'WebViewController not initialized yet');
     return _controller!;
   }

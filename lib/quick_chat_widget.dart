@@ -323,6 +323,9 @@ class QuickChat {
   static bool isQuickChatNotification(Map<String, dynamic> data) {
     debugPrint("Quick chat ----------is quick chat notification");
     String clickAction = data['click_action'];
+    if(clickAction == null){
+      return false;
+    }
     if (clickAction == 'QUICK_CHAT_NOTIFICATION') {
       return true;
     } else {

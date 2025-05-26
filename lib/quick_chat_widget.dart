@@ -145,8 +145,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-        WebViewService().controller.reload();
-      }
+      WebViewService().controller.reload();
+    }
   }
 
   @override
@@ -241,8 +241,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     "No internet connection"),
                 const SizedBox(height: 8),
                 ElevatedButton(
@@ -323,8 +322,8 @@ class QuickChat {
 
   static bool isQuickChatNotification(Map<String, dynamic> data) {
     debugPrint("Quick chat ----------is quick chat notification");
-    String clickAction = data['click_action'];
-    if(clickAction == null){
+    String? clickAction = data['click_action'];
+    if (clickAction == null || clickAction.isEmpty) {
       return false;
     }
     if (clickAction == 'QUICK_CHAT_NOTIFICATION') {

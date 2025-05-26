@@ -18,7 +18,7 @@ To use this package in your Flutter project, follow these steps:
    
     ```yaml
     dependencies:
-      quick_chat_wms: 3.1.5
+      quick_chat_wms: 3.1.6
 
 2. Run the following command to fetch the package:
 

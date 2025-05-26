@@ -1,4 +1,4 @@
-## 3.1.5
+## 3.1.6
 
 * Handled real-time messaging.
 * Handled notification

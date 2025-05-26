@@ -159,6 +159,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     bool isConnected = _connectionStatus != ConnectivityResult.none;
     return Scaffold(
       backgroundColor: widget.backgroundColor,

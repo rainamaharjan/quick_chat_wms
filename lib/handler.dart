@@ -4,9 +4,10 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:quick_chat_wms/preference_manager.dart';
-import 'package:quick_chat_wms/quick_chat_widget.dart';
 import 'package:http/http.dart' as http;
+
+import 'preference_manager.dart';
+import 'quick_chat_widget.dart';
 
 class Handler {
   static Future<void> updateFirebaseToken(
@@ -100,9 +101,8 @@ class Handler {
 
   static Future<void> initNotification(BuildContext context) async {
     const initializationSettings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings()
-    );
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings());
 
     await flutterLocalNotificationsPlugin.initialize(initializationSettings,
         onDidReceiveNotificationResponse:
@@ -129,24 +129,22 @@ class Handler {
         title,
         body,
         NotificationDetails(
-          android: AndroidNotificationDetails(
-            'chat_channel',
-            'Chat Notifications',
-            importance: Importance.high,
-            playSound: true,
-            priority: Priority.high,
-            styleInformation: InboxStyleInformation(
-              messages,
-              contentTitle: title,
-              summaryText: "Tap to open chat",
+            android: AndroidNotificationDetails(
+              'chat_channel',
+              'Chat Notifications',
+              importance: Importance.high,
+              playSound: true,
+              priority: Priority.high,
+              styleInformation: InboxStyleInformation(
+                messages,
+                contentTitle: title,
+                summaryText: "Tap to open chat",
+              ),
+              onlyAlertOnce: true,
+              setAsGroupSummary: true,
+              groupKey: 'notification_group_key',
             ),
-            onlyAlertOnce: true,
-            setAsGroupSummary: true,
-            groupKey: 'notification_group_key',
-          ),
-          iOS: DarwinNotificationDetails(
-          )
-        ));
+            iOS: DarwinNotificationDetails()));
   }
 
   static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =

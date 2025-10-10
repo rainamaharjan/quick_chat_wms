@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:quick_chat_wms/preference_manager.dart';
-import 'package:quick_chat_wms/webview_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'handler.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+
+import 'preference_manager.dart';
+import 'webview_service.dart';
 
 bool isChatScreen = false;
 
@@ -61,10 +62,9 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
     isChatScreen = true;
     url =
-        'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=${widget.widgetCode}';
+        'https://wms-uat.worldlink.com.np/chat-sdk-script/mobileChat.html?widgetId=${widget.widgetCode}';
     _initializeController();
   }
-
   String fcmToken = '';
   String email = '';
   String userName = '';

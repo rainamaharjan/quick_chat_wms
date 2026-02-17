@@ -275,19 +275,20 @@ class QuickChat {
       appBarTitleColor: appBarTitleColor,
       appBarBackButtonColor: appBarBackgroundColor,
     );
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => QuickChatWidget(
+  }
+
+  static Widget navigateWidget(){
+    return QuickChatWidget(
             widgetCode: widgetCode,
             appBarTitle: appBarTitle,
             appBarBackgroundColor: appBarBackgroundColor,
             appBarTitleColor: appBarTitleColor,
             appBarBackButtonColor: appBarBackButtonColor,
             backgroundColor: backgroundColor),
-      ),
-    );
+      );
   }
 
+  
   static void handleNotificationOnClick(BuildContext context) async {
     debugPrint("Quick chat ---------- handleNotificationOnClick ");
     Handler.handleNotificationClick(context);

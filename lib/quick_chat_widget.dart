@@ -191,6 +191,27 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     super.dispose();
   }
 
+
+  Future<void> _openCamera(String facing) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: facing == 'front'
+            ? CameraDevice.front
+            : CameraDevice.rear,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        await _sendImageToWebView(image);
+      }
+    } catch (e) {
+      webViewController?.evaluateJavascript(
+        source: "receiveError('${e.toString().replaceAll("'", "\\'")}');",
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -241,6 +262,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
                     allowsInlineMediaPlayback: true,
                     allowFileAccessFromFileURLs: true,
                     allowUniversalAccessFromFileURLs: true,
+                       useHybridComposition: true,
+          javaScriptEnabled: true,
                   ),
                   // Grant camera/mic/storage permissions requested by the web page
                   onPermissionRequest: (controller, request) async {
@@ -255,6 +278,15 @@ class QuickChatWidgetState extends State<QuickChatWidget>
                   onWebViewCreated: (controller) {
                     WebViewService().controller = controller;
                     _webViewReady = true;
+
+                    // Handle front/back camera
+          controller.addJavaScriptHandler(
+            handlerName: 'openCamera',
+            callback: (args) async {
+              final facing = args.isNotEmpty ? args[0].toString() : 'back';
+              await _openCamera(facing);
+            },
+          );
 
                     controller.addJavaScriptHandler(
                       handlerName: 'FlutterWebView',

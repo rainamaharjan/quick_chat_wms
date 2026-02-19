@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:quick_chat_wms/preference_manager.dart';
 import 'package:quick_chat_wms/webview_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -89,7 +91,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       appBarBackgroundColor = prefs['app_bar_background_color'];
       backgroundColor = prefs['background_color'];
       appBarBackButtonColor = prefs['app_bar_back_button_color'];
-      url = 'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=$widgetCode';
+      url =
+          'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=$widgetCode';
     });
   }
 
@@ -161,7 +164,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) async{
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.paused) {
       // App went to background — could be camera/file picker opening
       _isPickerActive = true;
@@ -217,8 +220,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
           ),
           title: Text(
             appBarTitle,
-            style:
-            TextStyle(color: appBarTitleColor ?? Colors.white, fontSize: 18),
+            style: TextStyle(
+                color: appBarTitleColor ?? Colors.white, fontSize: 18),
           ),
           centerTitle: true,
           backgroundColor: appBarBackgroundColor ?? Colors.white,
@@ -226,105 +229,120 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       ),
       body: isConnected
           ? Stack(
-        children: [
-          InAppWebView(
-            initialUrlRequest:
-            URLRequest(url: WebUri.uri(Uri.parse(url))),
-            initialSettings: InAppWebViewSettings(
-              useOnLoadResource: true,
-              clearCache: true,
-              cacheEnabled: false,
-              cacheMode: CacheMode.LOAD_NO_CACHE,
-              // Camera & media fixes
-              mediaPlaybackRequiresUserGesture: false,
-              allowsInlineMediaPlayback: true,
-              allowFileAccessFromFileURLs: true,
-              allowUniversalAccessFromFileURLs: true,
-            ),
-            // Grant camera/mic/storage permissions requested by the web page
-            onPermissionRequest: (controller, request) async {
-              return PermissionResponse(
-                resources: request.resources,
-                action: PermissionResponseAction.GRANT,
-              );
-            },
-            onJsAlert: (controller, jsAlertRequest) async {
-              return JsAlertResponse(handledByClient: true);
-            },
-            onWebViewCreated: (controller) {
-              WebViewService().controller = controller;
-              _webViewReady = true;
+              children: [
+                InAppWebView(
+                  initialUrlRequest:
+                      URLRequest(url: WebUri.uri(Uri.parse(url))),
+                  initialSettings: InAppWebViewSettings(
+                    useOnLoadResource: true,
+                    clearCache: true,
+                    useHybridComposition: true,
+                    cacheEnabled: false,
+                    cacheMode: CacheMode.LOAD_NO_CACHE,
+                    // Camera & media fixes
+                    mediaPlaybackRequiresUserGesture: false,
+                    allowsInlineMediaPlayback: true,
+                    allowFileAccessFromFileURLs: true,
+                    allowUniversalAccessFromFileURLs: true,
+                  ),
+                  // Grant camera/mic/storage permissions requested by the web page
+                  onPermissionRequest: (controller, request) async {
+                    return PermissionResponse(
+                      resources: request.resources,
+                      action: PermissionResponseAction.GRANT,
+                    );
+                  },
+                  onJsAlert: (controller, jsAlertRequest) async {
+                    return JsAlertResponse(handledByClient: true);
+                  },
+                  onWebViewCreated: (controller) {
+                    WebViewService().controller = controller;
+                    _webViewReady = true;
 
-              controller.addJavaScriptHandler(
-                handlerName: 'FlutterWebView',
-                callback: (args) {
-                  if (args.isEmpty) return;
-                  String uniqueId = args.first;
-                  if (uniqueId.isNotEmpty) {
-                    postTokenToApi(userName, email, fcmToken, uniqueId);
-                  } else {
-                    uniqueId = generateUniqueId();
-                    postTokenToApi(userName, email, fcmToken, uniqueId);
-                  }
-                },
-              );
-            },
-            shouldOverrideUrlLoading:
-                (controller, navigationAction) async {
-              final uri = navigationAction.request.url;
-              if (uri != null && !uri.toString().contains(url)) {
-                _launchURL(uri.toString());
-                return NavigationActionPolicy.CANCEL;
-              }
-              return NavigationActionPolicy.ALLOW;
-            },
-            onLoadStop: (controller, url) async {
-              await _onPageFinished(url.toString());
-            },
-          ),
-          if (isLoading)
-            Container(
-              color: Colors.white,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: appBarBackgroundColor ?? Colors.blue,
+                    controller.addJavaScriptHandler(
+                        handlerName: 'openCamera',
+                        callback: (args) async {
+                          final picker = ImagePicker();
+                          // Lower quality to prevent Android from killing the app
+                          final XFile? image = await picker.pickImage(
+                              source: ImageSource.camera, imageQuality: 50);
+
+                          if (image != null) {
+                            final bytes = await image.readAsBytes();
+                            return base64Encode(
+                                bytes); // Send string back to JS
+                          }
+                          return null;
+                        });
+                    controller.addJavaScriptHandler(
+                      handlerName: 'FlutterWebView',
+                      callback: (args) {
+                        if (args.isEmpty) return;
+                        String uniqueId = args.first;
+                        if (uniqueId.isNotEmpty) {
+                          postTokenToApi(userName, email, fcmToken, uniqueId);
+                        } else {
+                          uniqueId = generateUniqueId();
+                          postTokenToApi(userName, email, fcmToken, uniqueId);
+                        }
+                      },
+                    );
+                  },
+                  shouldOverrideUrlLoading:
+                      (controller, navigationAction) async {
+                    final uri = navigationAction.request.url;
+                    if (uri != null && !uri.toString().contains(url)) {
+                      _launchURL(uri.toString());
+                      return NavigationActionPolicy.CANCEL;
+                    }
+                    return NavigationActionPolicy.ALLOW;
+                  },
+                  onLoadStop: (controller, url) async {
+                    await _onPageFinished(url.toString());
+                  },
                 ),
+                if (isLoading)
+                  Container(
+                    color: Colors.white,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: appBarBackgroundColor ?? Colors.blue,
+                      ),
+                    ),
+                  ),
+              ],
+            )
+          : Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "No internet connection",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: _checkConnectivity,
+                    child: const Text("Retry"),
+                  ),
+                ],
               ),
             ),
-        ],
-      )
-          : Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "No internet connection",
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: _checkConnectivity,
-              child: const Text("Retry"),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
 
 class QuickChat {
   static void init(
-      BuildContext context, {
-        String widgetCode = '',
-        Color backgroundColor = Colors.white,
-        String appBarTitle = 'Chat With Us',
-        Color appBarBackgroundColor = Colors.blueAccent,
-        Color appBarTitleColor = Colors.white,
-        Color appBarBackButtonColor = Colors.white,
-      }) async {
+    BuildContext context, {
+    String widgetCode = '',
+    Color backgroundColor = Colors.white,
+    String appBarTitle = 'Chat With Us',
+    Color appBarBackgroundColor = Colors.blueAccent,
+    Color appBarTitleColor = Colors.white,
+    Color appBarBackButtonColor = Colors.white,
+  }) async {
     debugPrint("Quick chat ---------- start chat");
     PreferencesManager preferencesManager = PreferencesManager();
 

@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:quick_chat_wms/preference_manager.dart';
 import 'package:quick_chat_wms/webview_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -236,7 +234,6 @@ class QuickChatWidgetState extends State<QuickChatWidget>
                   initialSettings: InAppWebViewSettings(
                     useOnLoadResource: true,
                     clearCache: true,
-                    useHybridComposition: true,
                     cacheEnabled: false,
                     cacheMode: CacheMode.LOAD_NO_CACHE,
                     // Camera & media fixes
@@ -259,21 +256,6 @@ class QuickChatWidgetState extends State<QuickChatWidget>
                     WebViewService().controller = controller;
                     _webViewReady = true;
 
-                    controller.addJavaScriptHandler(
-                        handlerName: 'openCamera',
-                        callback: (args) async {
-                          final picker = ImagePicker();
-                          // Lower quality to prevent Android from killing the app
-                          final XFile? image = await picker.pickImage(
-                              source: ImageSource.camera, imageQuality: 50);
-
-                          if (image != null) {
-                            final bytes = await image.readAsBytes();
-                            return base64Encode(
-                                bytes); // Send string back to JS
-                          }
-                          return null;
-                        });
                     controller.addJavaScriptHandler(
                       handlerName: 'FlutterWebView',
                       callback: (args) {
@@ -356,9 +338,7 @@ class QuickChat {
     );
   }
 
-  static Widget navigateWidget() {
-    return const QuickChatWidget();
-  }
+  static Widget get screen => const QuickChatWidget();
 
   static void handleNotificationOnClick(BuildContext context) async {
     debugPrint("Quick chat ---------- handleNotificationOnClick ");

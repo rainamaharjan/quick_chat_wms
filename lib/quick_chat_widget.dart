@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:quick_chat_wms/preference_manager.dart';
-import 'package:quick_chat_wms/webview_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'handler.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:convert';
 
 bool isChatScreen = false;
 
@@ -38,6 +39,10 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
   @override
   bool get wantKeepAlive => true;
+
+  final GlobalKey webViewKey = GlobalKey();
+  InAppWebViewController? webViewController;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -191,14 +196,12 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     super.dispose();
   }
 
-
   Future<void> _openCamera(String facing) async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
-        preferredCameraDevice: facing == 'front'
-            ? CameraDevice.front
-            : CameraDevice.rear,
+        preferredCameraDevice:
+            facing == 'front' ? CameraDevice.front : CameraDevice.rear,
         imageQuality: 80,
       );
 
@@ -210,6 +213,17 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         source: "receiveError('${e.toString().replaceAll("'", "\\'")}');",
       );
     }
+  }
+
+  Future<void> _sendImageToWebView(XFile image) async {
+    final bytes = await image.readAsBytes();
+    final base64String = base64Encode(bytes);
+    final mimeType = image.mimeType ?? 'image/jpeg';
+    final dataUrl = 'data:$mimeType;base64,$base64String';
+
+    await webViewController?.evaluateJavascript(
+      source: "receiveImage('$dataUrl');",
+    );
   }
 
   @override
@@ -250,6 +264,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
           ? Stack(
               children: [
                 InAppWebView(
+                  key: webViewKey,
                   initialUrlRequest:
                       URLRequest(url: WebUri.uri(Uri.parse(url))),
                   initialSettings: InAppWebViewSettings(
@@ -262,8 +277,8 @@ class QuickChatWidgetState extends State<QuickChatWidget>
                     allowsInlineMediaPlayback: true,
                     allowFileAccessFromFileURLs: true,
                     allowUniversalAccessFromFileURLs: true,
-                       useHybridComposition: true,
-          javaScriptEnabled: true,
+                    useHybridComposition: true,
+                    javaScriptEnabled: true,
                   ),
                   // Grant camera/mic/storage permissions requested by the web page
                   onPermissionRequest: (controller, request) async {
@@ -277,16 +292,18 @@ class QuickChatWidgetState extends State<QuickChatWidget>
                   },
                   onWebViewCreated: (controller) {
                     WebViewService().controller = controller;
+                    webViewController = controller;
                     _webViewReady = true;
 
                     // Handle front/back camera
-          controller.addJavaScriptHandler(
-            handlerName: 'openCamera',
-            callback: (args) async {
-              final facing = args.isNotEmpty ? args[0].toString() : 'back';
-              await _openCamera(facing);
-            },
-          );
+                    controller.addJavaScriptHandler(
+                      handlerName: 'openCamera',
+                      callback: (args) async {
+                        final facing =
+                            args.isNotEmpty ? args[0].toString() : 'back';
+                        await _openCamera(facing);
+                      },
+                    );
 
                     controller.addJavaScriptHandler(
                       handlerName: 'FlutterWebView',

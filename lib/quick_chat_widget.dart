@@ -1,11 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart'
     hide CompressFormat;
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'handler.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';

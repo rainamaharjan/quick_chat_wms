@@ -19,7 +19,6 @@ dependencies:
   shared_preferences: ^2.2.2
   url_launcher: ^6.2.4
   flutter_inappwebview: ^6.1.5
-  image_picker: ^1.2.1
 
 dev_dependencies:
   flutter_test:

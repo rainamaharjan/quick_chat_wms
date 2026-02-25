@@ -67,7 +67,10 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
     // Check reset flag logic
     if (_prefs.resetLocalStorage) {
-      await _prefsService.updatePreferences(resetLocalStorage: false);
+      await _prefsService.clearAllPreferences();
+      await _prefsService.updatePreferences(
+        data: (currentData) => AppPreferences(),
+      );
     }
 
     final hasPerms = await _permissionService.checkAndRequestPermissions();
@@ -77,11 +80,9 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     setState(() {
       _hasPermissions = hasPerms;
       _isCheckingPermissions = false;
-      // _url =
-      //     'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=${_prefs.widgetCode}';
-      // TODO: Change This when in production
+
       _url =
-          'https://wms-uat.worldlink.com.np/chat-sdk-script/mobileChat.html?widgetId=eb1fc3ee-7fc0-4a1c-b136-6a6106a72477';
+          'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=${_prefs.widgetCode}';
     });
 
     if (_hasPermissions) {

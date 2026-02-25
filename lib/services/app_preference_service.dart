@@ -30,37 +30,16 @@ class AppPreferencesService {
   }
 
   /// Updates only the provided fields using Freezed's copyWith,
-  /// keeping the rest of the existing data intact.
+  /// keeping the rest of the existing data intact.p
   Future<void> updatePreferences({
-    String? widgetCode,
-    Color? backgroundColor,
-    String? appBarTitle,
-    Color? appBarBackgroundColor,
-    Color? appBarTitleColor,
-    Color? appBarBackButtonColor,
-    String? fcmToken,
-    String? userName,
-    String? email,
-    bool? resetLocalStorage,
+    required AppPreferences Function(AppPreferences currentData) data,
   }) async {
     // 1. Get current preferences
-    final currentPrefs = await getPreferences();
+    final AppPreferences currentPrefs = await getPreferences();
 
-    // 2. Apply updates only to the fields passed in
-    final updatedPrefs = currentPrefs.copyWith(
-      widgetCode: widgetCode ?? currentPrefs.widgetCode,
-      backgroundColor: backgroundColor ?? currentPrefs.backgroundColor,
-      appBarTitle: appBarTitle ?? currentPrefs.appBarTitle,
-      appBarBackgroundColor:
-          appBarBackgroundColor ?? currentPrefs.appBarBackgroundColor,
-      appBarTitleColor: appBarTitleColor ?? currentPrefs.appBarTitleColor,
-      appBarBackButtonColor:
-          appBarBackButtonColor ?? currentPrefs.appBarBackButtonColor,
-      fcmToken: fcmToken ?? currentPrefs.fcmToken,
-      userName: userName ?? currentPrefs.userName,
-      email: email ?? currentPrefs.email,
-      resetLocalStorage: resetLocalStorage ?? currentPrefs.resetLocalStorage,
-    );
+    final AppPreferences updatedPrefs = data(currentPrefs);
+
+    print('QUICKCHAT:::: Updated Prefs: $currentPrefs');
 
     // 3. Save back to secure storage
     final jsonString = jsonEncode(updatedPrefs.toJson());

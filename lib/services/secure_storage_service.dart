@@ -9,8 +9,7 @@ class SecureStorageService {
           // This now correctly calls the static method
           FlutterSecureStorage(aOptions: _getAndroidOptions());
   // Made this static so it can be used in the constructor initializer
-  static AndroidOptions _getAndroidOptions() =>
-      const AndroidOptions(encryptedSharedPreferences: true);
+  static AndroidOptions _getAndroidOptions() => const AndroidOptions();
 
   final FlutterSecureStorage _secureStorage;
 

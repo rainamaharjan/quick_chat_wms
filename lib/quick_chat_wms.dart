@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quick_chat_wms/models/prefrence_model.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
 import 'package:quick_chat_wms/services/notification_service.dart';
 import 'package:quick_chat_wms/services/secure_storage_service.dart';
@@ -7,7 +8,6 @@ import 'package:quick_chat_wms/widget/quick_chat_widget.dart';
 bool isChatScreen = false;
 
 class QuickChatWms {
-  // Create a single static instance of the service to be used across all methods
   static final AppPreferencesService _prefsService = AppPreferencesService(
     secureStorageService: SecureStorageService(),
   );
@@ -15,24 +15,27 @@ class QuickChatWms {
   static final NotificationHandlerService _notificationService =
       NotificationHandlerService(prefsService: _prefsService);
 
-  static void init(
+  // CHANGED: void -> Future<void>
+  static Future<void> init(
     BuildContext context, {
     String widgetCode = '',
-    Color backgroundColor = Colors.white, // Default background color
-    String appBarTitle = 'Chat With Us', // Default app bar title
-    Color appBarBackgroundColor = Colors.blueAccent, // Default background color
-    Color appBarTitleColor = Colors.white, // Default title color
-    Color appBarBackButtonColor = Colors.white, // Default back button color
+    Color backgroundColor = Colors.white,
+    String appBarTitle = 'Chat With Us',
+    Color appBarBackgroundColor = Colors.blueAccent,
+    Color appBarTitleColor = Colors.white,
+    Color appBarBackButtonColor = Colors.white,
   }) async {
     debugPrint("Quick chat ---------- start chat");
 
     await _prefsService.updatePreferences(
-      widgetCode: widgetCode,
-      backgroundColor: backgroundColor,
-      appBarTitle: appBarTitle,
-      appBarBackgroundColor: appBarBackgroundColor,
-      appBarTitleColor: appBarTitleColor,
-      appBarBackButtonColor: appBarBackButtonColor,
+      data: (currentData) => currentData.copyWith(
+        widgetCode: widgetCode,
+        backgroundColor: backgroundColor,
+        appBarTitle: appBarTitle,
+        appBarBackgroundColor: appBarBackgroundColor,
+        appBarTitleColor: appBarTitleColor,
+        appBarBackButtonColor: appBarBackButtonColor,
+      ),
     );
   }
 
@@ -55,16 +58,30 @@ class QuickChatWms {
     _notificationService.showQuickChatNotification(data);
   }
 
-  static void setFcmToken(String? fcmToken) async {
-    await _prefsService.updatePreferences(fcmToken: fcmToken ?? '');
+  // CHANGED: void -> Future<void>
+  static Future<void> setFcmToken(String? fcmToken) async {
+    print('QUICKCHAT:::: FCM Update: $fcmToken');
+
+    await _prefsService.updatePreferences(
+      data: (current) => current.copyWith(fcmToken: fcmToken ?? ''),
+    );
   }
 
-  static void setUserName(String? username) async {
-    await _prefsService.updatePreferences(userName: username ?? '');
+  // CHANGED: void -> Future<void>
+  static Future<void> setUserName(String? username) async {
+    print('QUICKCHAT:::: UserName Update: $username');
+
+    await _prefsService.updatePreferences(
+      data: (currentData) => currentData.copyWith(userName: username ?? ''),
+    );
   }
 
-  static void setEmail(String? email) async {
-    await _prefsService.updatePreferences(email: email ?? '');
+  // CHANGED: void -> Future<void>
+  static Future<void> setEmail(String? email) async {
+    print('QUICKCHAT:::: Email Update: $email');
+    await _prefsService.updatePreferences(
+      data: (currentData) => currentData.copyWith(email: email ?? ''),
+    );
   }
 
   static bool isQuickChatNotification(Map<String, dynamic> data) {
@@ -77,14 +94,14 @@ class QuickChatWms {
     return clickAction == 'QUICK_CHAT_NOTIFICATION';
   }
 
+  // This was already Future<void>, which is correct!
   static Future<void> resetUser() async {
-    // 1. Clear everything from secure storage
+
+
     await _prefsService.clearAllPreferences();
-
-    // 2. Setting the flag will automatically recreate the JSON string
-    // with default Freezed values + the true flag.
-    await _prefsService.updatePreferences(resetLocalStorage: true);
-
+    await _prefsService.updatePreferences(
+      data: (currentData) => AppPreferences(),
+    );
     await NotificationHandlerService.updateFirebaseToken('', '', '', '');
     debugPrint("Quick chat ----------reset user");
   }

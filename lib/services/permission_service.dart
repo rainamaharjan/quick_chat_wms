@@ -5,14 +5,15 @@ class PermissionService {
   Future<bool> checkAndRequestPermissions() async {
     Map<Permission, PermissionStatus> statuses = await [
       Permission.notification,
-      Permission.storage,
+      // Permission.storage,
       Permission.photos,
       Permission.camera,
     ].request();
 
     final notificationsGranted =
         statuses[Permission.notification]?.isGranted == true;
-    final storageGranted = statuses[Permission.storage]?.isGranted == true;
+    // final storageGranted = statuses[Permission.storage]?.isGranted == true;
+    final storageGranted = true;
     final photosGranted = statuses[Permission.photos]?.isGranted == true;
 
     // Based on your original logic, we need notifications + (storage OR photos)

@@ -1,6 +1,6 @@
-# example
+# quick_chat_wms_example
 
-A new Flutter project.
+Demonstrates how to use the quick_chat_wms plugin.
 
 ## Getting Started
 

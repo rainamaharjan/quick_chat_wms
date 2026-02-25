@@ -1,5 +1,3 @@
-## 3.1.6
+## 0.0.1
 
-* Handled real-time messaging.
-* Handled notification
-* Handled logout 
+* TODO: Describe initial release.

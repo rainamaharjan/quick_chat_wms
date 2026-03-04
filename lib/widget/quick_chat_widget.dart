@@ -10,6 +10,7 @@ import 'package:quick_chat_wms/services/webview_service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/services.dart';
 
 // Assuming these are your paths based on our previous discussions
 // import 'package:quick_chat_wms/services/app_preferences_service.dart';

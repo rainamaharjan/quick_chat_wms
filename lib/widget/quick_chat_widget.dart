@@ -181,7 +181,16 @@ class QuickChatWidgetState extends State<QuickChatWidget>
               size: 18,
               color: _prefs.appBarBackButtonColor,
             ),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                if (Platform.isAndroid) {
+                  SystemNavigator.pop();
+                } else {
+                  exit(0);
+                }
+              },
           ),
           title: Text(
             _prefs.appBarTitle,

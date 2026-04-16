@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/material.dart';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:quick_chat_wms/models/prefrence_model.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
 import 'package:quick_chat_wms/services/permission_service.dart';
@@ -9,8 +12,6 @@ import 'package:quick_chat_wms/services/secure_storage_service.dart';
 import 'package:quick_chat_wms/services/webview_service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/services.dart';
 
 // Assuming these are your paths based on our previous discussions
 // import 'package:quick_chat_wms/services/app_preferences_service.dart';
@@ -43,7 +44,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
   String _url = '';
   ConnectivityResult _connectionStatus = ConnectivityResult.none;
-  late StreamSubscription<ConnectivityResult> _subscription;
+  late StreamSubscription<List<ConnectivityResult>> _subscription;
 
   @override
   bool get wantKeepAlive => true;
@@ -113,18 +114,32 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
   Future<void> _checkConnectivity() async {
     final result = await Connectivity().checkConnectivity();
-    if (mounted) setState(() => _connectionStatus = result);
+    if (mounted) setState(() => _connectionStatus = result.first);
   }
 
   void _listenToConnectivity() {
-    _subscription = Connectivity().onConnectivityChanged.listen((result) {
-      if (_connectionStatus == ConnectivityResult.none &&
-          result != ConnectivityResult.none) {
+    _subscription = Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) {
+      // In v7, we get a list. We check if it contains anything other than .none
+      final hasConnection =
+          results.isNotEmpty && results.first != ConnectivityResult.none;
+      final currentStatus = results.isNotEmpty
+          ? results.first
+          : ConnectivityResult.none;
+
+      // Logic to reload if we were previously offline and now have a connection
+      if (_connectionStatus == ConnectivityResult.none && hasConnection) {
         if (_isControllerInitialized) {
           _webViewService.controller.reload();
         }
       }
-      if (mounted) setState(() => _connectionStatus = result);
+
+      if (mounted) {
+        setState(() {
+          _connectionStatus = currentStatus;
+        });
+      }
     });
   }
 
@@ -183,16 +198,16 @@ class QuickChatWidgetState extends State<QuickChatWidget>
               color: _prefs.appBarBackButtonColor,
             ),
             onPressed: () {
-                if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                if (Platform.isAndroid) {
+                  SystemNavigator.pop();
                 } else {
-                  if (Platform.isAndroid) {
-                    SystemNavigator.pop();
-                  } else {
-                    exit(0);
-                  }
+                  exit(0);
                 }
               }
+            },
           ),
           title: Text(
             _prefs.appBarTitle,

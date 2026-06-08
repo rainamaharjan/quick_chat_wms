@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:quick_chat_wms/services/notification_service.dart';
+import 'package:quick_chat_wms/services/permission_service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:image_picker/image_picker.dart';
@@ -88,7 +89,9 @@ class QuickChatWebViewService {
     onFileSelectorToggled(true);
 
     try {
-      // Replaced showDialog with showModalBottomSheet
+      // Show the upload options first so the user always sees Camera / Gallery /
+      // Video. Permission is requested per-choice below — only when needed and
+      // only after the user taps the file-upload button in the web view.
       final String? choice = await showModalBottomSheet<String>(
         context: context,
         useRootNavigator: true,
@@ -138,7 +141,26 @@ class QuickChatWebViewService {
         },
       );
 
-      // The rest of your logic remains exactly the same
+      // Camera capture needs the camera permission, requested only when the
+      // user picks a camera option. Gallery / Files goes through the system
+      // file picker (SAF), which needs no runtime permission.
+      if (choice == 'camera' || choice == 'video') {
+        final permissionService = PermissionService();
+        final cameraGranted = await permissionService.requestCameraPermission();
+        if (!cameraGranted) {
+          // When it's permanently denied the OS won't prompt anymore, so ask
+          // the user (via a dialog) whether to open app settings to enable it.
+          if (await permissionService.isCameraPermanentlyDenied() &&
+              context.mounted) {
+            final goToSettings = await _showCameraSettingsDialog(context);
+            if (goToSettings == true) {
+              await permissionService.openSettings();
+            }
+          }
+          return [];
+        }
+      }
+
       if (choice == 'camera') {
         final photo = await ImagePicker().pickImage(
           source: ImageSource.camera,
@@ -169,6 +191,34 @@ class QuickChatWebViewService {
     }
 
     return [];
+  }
+
+  /// Asks the user whether to open app settings to enable the camera permission
+  /// (shown only when the permission is permanently denied). Returns true if the
+  /// user chose to open settings.
+  Future<bool?> _showCameraSettingsDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Camera permission required'),
+          content: const Text(
+            'Camera access is turned off for this app. To take a photo, enable '
+            'the Camera permission in Settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Open Settings'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _launchURL(String url) async {

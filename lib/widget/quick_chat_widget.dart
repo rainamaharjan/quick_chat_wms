@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:quick_chat_wms/models/prefrence_model.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
-import 'package:quick_chat_wms/services/permission_service.dart';
 import 'package:quick_chat_wms/services/secure_storage_service.dart';
 import 'package:quick_chat_wms/services/webview_service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -28,7 +27,6 @@ class QuickChatWidget extends StatefulWidget {
 class QuickChatWidgetState extends State<QuickChatWidget>
     with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   // Services
-  final _permissionService = PermissionService();
   final _webViewService = QuickChatWebViewService();
   // Ensure you initialize this or pass it via dependency injection
   late final AppPreferencesService _prefsService;
@@ -74,21 +72,21 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       );
     }
 
-    final hasPerms = await _permissionService.checkAndRequestPermissions();
-
+    // Permissions are NOT requested here anymore. Camera/gallery/file access is
+    // requested only when the user taps the file-upload button inside the web
+    // view (see WebViewService._androidFilePicker), so opening the chat no
+    // longer triggers an up-front permission prompt.
     if (!mounted) return;
 
     setState(() {
-      _hasPermissions = hasPerms;
+      _hasPermissions = true;
       _isCheckingPermissions = false;
 
       _url =
           'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=${_prefs.widgetCode}';
     });
 
-    if (_hasPermissions) {
-      _initializeWebView();
-    }
+    _initializeWebView();
   }
 
   void _initializeWebView() {

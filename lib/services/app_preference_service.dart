@@ -8,12 +8,33 @@ class AppPreferencesService {
 
   static const String _keyAppPreferences = 'app_preferences_secure_data';
 
+  /// In-memory copy of what's in secure storage.
+  ///
+  /// Every read here goes through the Android keystore, which cost ~670ms on
+  /// the first call — paid again on every widget remount, and again inside each
+  /// [updatePreferences] (setUserName/setEmail/setFcmToken each did a read AND
+  /// a write). Static so the SDK's service and the widget's own instance share
+  /// one cache; all writes funnel through this class, so it can't go stale.
+  static AppPreferences? _cache;
+
+  /// Dedupes concurrent first reads — several callers race at app start, and
+  /// without this they'd each pay the full keystore cost.
+  static Future<AppPreferences>? _pendingRead;
+
   AppPreferencesService({required SecureStorageService secureStorageService})
     : _secureStorageService = secureStorageService;
 
   /// Retrieves the entire preferences model.
   /// Returns default values if empty or on error.
   Future<AppPreferences> getPreferences() async {
+    final AppPreferences? cached = _cache;
+    if (cached != null) return cached;
+
+    return _pendingRead ??= _readFromStorage()
+      ..whenComplete(() => _pendingRead = null);
+  }
+
+  Future<AppPreferences> _readFromStorage() async {
     try {
       final jsonString = await _secureStorageService.read(
         key: _keyAppPreferences,
@@ -21,12 +42,12 @@ class AppPreferencesService {
 
       if (jsonString != null && jsonString.isNotEmpty) {
         final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
-        return AppPreferences.fromJson(jsonMap);
+        return _cache = AppPreferences.fromJson(jsonMap);
       }
     } catch (e) {
       debugPrint('Data parsing error in AppPreferencesService: $e');
     }
-    return const AppPreferences(); // Falls back to @Default values
+    return _cache = const AppPreferences(); // Falls back to @Default values
   }
 
   /// Updates only the provided fields using Freezed's copyWith,
@@ -39,7 +60,9 @@ class AppPreferencesService {
 
     final AppPreferences updatedPrefs = data(currentPrefs);
 
-    print('QUICKCHAT:::: Updated Prefs: $currentPrefs');
+    // Cache first: readers get the new value immediately, without waiting on
+    // the keystore write below.
+    _cache = updatedPrefs;
 
     // 3. Save back to secure storage
     final jsonString = jsonEncode(updatedPrefs.toJson());
@@ -51,6 +74,7 @@ class AppPreferencesService {
 
   /// Clears the app preferences data completely
   Future<void> clearAllPreferences() async {
+    _cache = null;
     await _secureStorageService.delete(key: _keyAppPreferences);
   }
 }

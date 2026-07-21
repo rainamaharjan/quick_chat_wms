@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:quick_chat_wms/quick_chat_wms.dart';
+import 'package:quick_chat_wms/services/api_config.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
 
 class NotificationHandlerService {
@@ -106,9 +107,7 @@ class NotificationHandlerService {
     String fcmToken,
     String uniqueId,
   ) async {
-    final url = Uri.parse(
-      'https://app.quickconnect.biz/api/api/v1/store-firebase-token',
-    );
+    final url = Uri.parse('$quickChatBaseUrl/api/api/v1/store-firebase-token');
     final body = {
       'user_name': username,
       'email': email,

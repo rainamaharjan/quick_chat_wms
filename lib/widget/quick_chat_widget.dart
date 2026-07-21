@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:quick_chat_wms/models/prefrence_model.dart';
+import 'package:quick_chat_wms/services/api_config.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
+import 'package:quick_chat_wms/services/client_service.dart';
 import 'package:quick_chat_wms/services/secure_storage_service.dart';
 import 'package:quick_chat_wms/services/webview_service.dart';
+import 'package:quick_chat_wms/widget/chat_skeleton.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -16,6 +20,12 @@ import 'package:flutter/services.dart';
 // import 'package:quick_chat_wms/services/permission_service.dart';
 // import 'package:quick_chat_wms/services/quick_chat_webview_service.dart';
 // import 'package:quick_chat_wms/models/app_preferences.dart';
+
+/// Secure-storage key holding the username whose conversation is already in the
+/// WebView's localStorage. Its presence is what lets a repeat open skip the
+/// `get-unique-id` lookup entirely. Cleared by [QuickChatWms.logout] and
+/// whenever that storage is wiped.
+const String kRestoredUserKey = 'qc_restored_user';
 
 class QuickChatWidget extends StatefulWidget {
   const QuickChatWidget({super.key});
@@ -38,6 +48,12 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   bool _isControllerInitialized = false;
   bool _isLoading = true;
   bool _isFileSelectorActive = false;
+
+  /// Skeleton visibility is tracked separately from [_isLoading] so it can fade
+  /// out: [_showSkeleton] drives the opacity, [_skeletonRemoved] drops it from
+  /// the tree once the fade has finished.
+  bool get _showSkeleton => _isLoading || !_isControllerInitialized;
+  bool _skeletonRemoved = false;
 
   String _url = '';
   ConnectivityResult _connectionStatus = ConnectivityResult.none;
@@ -62,20 +78,58 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   }
 
   Future<void> _initializeApp() async {
+    // Everything here runs BEFORE the WebView exists, so it is dead time on
+    // screen — worth seeing in the timing log alongside the load phases.
+    final Stopwatch watch = Stopwatch()..start();
     _prefs = await _prefsService.getPreferences();
+    if (kDebugMode) {
+      debugPrint('QUICKCHAT_TIMING prefs read: ${watch.elapsedMilliseconds}ms');
+    }
 
-    // Check reset flag logic
+    // Set by QuickChatWms.logout(): drop the previous conversation so this
+    // mount starts fresh. Only the WebView's storage is wiped — the widget code
+    // and branding must survive, otherwise a logged-out user gets a blank chat.
     if (_prefs.resetLocalStorage) {
-      await _prefsService.clearAllPreferences();
+      await _clearWebStorage();
+      // The stored conversation is gone, so the "already restored" marker must
+      // go with it or the next login would skip the lookup it now needs.
+      await SecureStorageService().delete(key: kRestoredUserKey);
       await _prefsService.updatePreferences(
-        data: (currentData) => AppPreferences(),
+        data: (currentData) => currentData.copyWith(resetLocalStorage: false),
       );
+      _prefs = await _prefsService.getPreferences();
     }
 
     // Permissions are NOT requested here anymore. Camera/gallery/file access is
     // requested only when the user taps the file-upload button inside the web
     // view (see WebViewService._androidFilePicker), so opening the chat no
     // longer triggers an up-front permission prompt.
+    // A logged-in user may already have a conversation on the server. Look up
+    // their client id so the chat can be restored instead of started fresh.
+    //
+    // Only on the FIRST open for that user, though: once the id is in the
+    // WebView's localStorage it stays there, so every later open would pay for
+    // an API call and an extra page load to write a value that's already
+    // correct. Anonymous users have nothing to look up at all.
+    //
+    // Deliberately NOT awaited — the future is handed to the WebView, which
+    // resolves it while the bootstrap document is already in flight.
+    final String userName = _prefs.userName.trim();
+    Future<String?>? uniqueIdFuture;
+    if (userName.isNotEmpty && await _needsHistoryRestore(userName)) {
+      uniqueIdFuture = ClientService.fetchClientUniqueId(
+        widgetCode: _prefs.widgetCode,
+        userName: userName,
+      );
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        'QUICKCHAT_TIMING pre-webview total: ${watch.elapsedMilliseconds}ms '
+        '(restore lookup: ${uniqueIdFuture != null})',
+      );
+    }
+
     if (!mounted) return;
 
     setState(() {
@@ -83,13 +137,29 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       _isCheckingPermissions = false;
 
       _url =
-          'https://app.quickconnect.biz/chat-sdk-script/mobileChat.html?widgetId=${_prefs.widgetCode}';
+          '$quickChatBaseUrl/chat-sdk-script/mobileChat.html?widgetId=${_prefs.widgetCode}';
     });
 
-    _initializeWebView();
+    _initializeWebView(uniqueIdFuture: uniqueIdFuture, userName: userName);
   }
 
-  void _initializeWebView() {
+  /// Whether this user's history still has to be pulled from the server. False
+  /// once [kRestoredUserKey] says we already seeded it into localStorage.
+  Future<bool> _needsHistoryRestore(String userName) async {
+    try {
+      final String restoredFor =
+          await SecureStorageService().read(key: kRestoredUserKey) ?? '';
+      return restoredFor != userName;
+    } catch (e) {
+      debugPrint('Could not read restore marker: $e');
+      return true;
+    }
+  }
+
+  void _initializeWebView({
+    Future<String?>? uniqueIdFuture,
+    String userName = '',
+  }) {
     _webViewService.init(
       url: _url,
       userName: _prefs.userName,
@@ -102,10 +172,37 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       onFileSelectorToggled: (isActive) {
         if (mounted) setState(() => _isFileSelectorActive = isActive);
       },
+      uniqueIdFuture: uniqueIdFuture,
+      onHistoryRestored: () {
+        // Their conversation is now in localStorage and stays there, so skip
+        // the lookup (and the extra page load) on every subsequent open.
+        SecureStorageService().write(key: kRestoredUserKey, value: userName);
+      },
+      onUniqueIdResolved: (id) {
+        // Persist so QuickChatWms.setFcmToken can re-register the token later
+        // without the chat being open (see quick_chat_wms.dart).
+        if (id.isNotEmpty) {
+          SecureStorageService().write(
+            key: 'qc_client_unique_id',
+            value: id,
+          );
+        }
+      },
     );
 
     if (mounted) {
       setState(() => _isControllerInitialized = true);
+    }
+  }
+
+  /// Wipes the WebView's localStorage (where the chat page keeps `uniqueId`)
+  /// so the next load mints a new conversation. Best-effort — a failure here
+  /// must not stop the chat from opening.
+  Future<void> _clearWebStorage() async {
+    try {
+      await WebViewController().clearLocalStorage();
+    } catch (e) {
+      debugPrint('Failed to clear chat local storage: $e');
     }
   }
 
@@ -140,8 +237,9 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     if (_isCheckingPermissions) {
       return Scaffold(
         backgroundColor: _prefs.backgroundColor,
-        body: Center(
-          child: CircularProgressIndicator(color: _prefs.appBarBackgroundColor),
+        body: ChatSkeleton(
+          backgroundColor: _prefs.backgroundColor,
+          accentColor: _prefs.appBarBackgroundColor,
         ),
       );
     }
@@ -212,12 +310,21 @@ class QuickChatWidgetState extends State<QuickChatWidget>
                           ),
                         )
                       : WebViewWidget(controller: _webViewService.controller),
-                if (_isLoading || !_isControllerInitialized)
-                  Container(
-                    color: _prefs.backgroundColor,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: _prefs.appBarBackgroundColor,
+                // Kept in the tree until the fade-out finishes, so the skeleton
+                // dissolves into the conversation instead of cutting to it.
+                if (!_skeletonRemoved)
+                  IgnorePointer(
+                    child: AnimatedOpacity(
+                      opacity: _showSkeleton ? 1 : 0,
+                      duration: const Duration(milliseconds: 280),
+                      onEnd: () {
+                        if (!_showSkeleton && mounted) {
+                          setState(() => _skeletonRemoved = true);
+                        }
+                      },
+                      child: ChatSkeleton(
+                        backgroundColor: _prefs.backgroundColor,
+                        accentColor: _prefs.appBarBackgroundColor,
                       ),
                     ),
                   ),

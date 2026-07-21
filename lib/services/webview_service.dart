@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:quick_chat_wms/services/notification_service.dart';
 import 'package:quick_chat_wms/services/permission_service.dart';
@@ -11,6 +12,46 @@ import 'package:url_launcher/url_launcher.dart';
 class QuickChatWebViewService {
   late final WebViewController controller;
 
+  /// Times each phase of the open so a slow chat can be attributed to the phase
+  /// that actually costs the time (grep logcat for QUICKCHAT_TIMING).
+  final Stopwatch _openWatch = Stopwatch();
+
+  void _mark(String phase) {
+    if (!kDebugMode) return;
+    debugPrint('QUICKCHAT_TIMING $phase: ${_openWatch.elapsedMilliseconds}ms');
+  }
+
+  /// Resolves to the server-known client id for the logged-in user, which is
+  /// seeded into the page's localStorage so the chat loads their existing
+  /// history (see [_seedUniqueId]).
+  ///
+  /// A FUTURE rather than a value: the lookup runs while the bootstrap document
+  /// is already being fetched, so the API call costs no wall-clock of its own.
+  Future<String?>? _uniqueIdFuture;
+
+  /// The id once [_uniqueIdFuture] has resolved and been sanitized.
+  String? _preloadUniqueId;
+
+  /// Set once [_preloadUniqueId] is actually in the page's localStorage.
+  bool _uniqueIdSeeded = false;
+
+  /// Guards the reload fallback below, so a page that refuses to store the id
+  /// can never put us in a reload loop.
+  bool _reloadedForSeed = false;
+
+  /// A cheap same-origin document loaded BEFORE the chat, purely so the id can
+  /// be written to localStorage (which is per-origin) while nothing is on
+  /// screen. Without it the chat had to boot once with the wrong id, get the
+  /// id, and reload — which the user saw as chat → loading → chat.
+  String? _bootstrapUrl;
+
+  /// True while that bootstrap document is the thing being loaded.
+  bool _awaitingBootstrap = false;
+
+  /// Called once the history id is in localStorage, so the SDK can remember
+  /// this user is restored and skip the whole lookup next time.
+  VoidCallback? _onHistoryRestored;
+
   void init({
     required String url,
     required String userName,
@@ -19,7 +60,22 @@ class QuickChatWebViewService {
     required BuildContext context,
     required VoidCallback onPageLoaded,
     required Function(bool) onFileSelectorToggled,
+    Function(String uniqueId)? onUniqueIdResolved,
+    Future<String?>? uniqueIdFuture,
+    VoidCallback? onHistoryRestored,
   }) {
+    _openWatch
+      ..reset()
+      ..start();
+    _mark(uniqueIdFuture != null ? 'init (restore path)' : 'init (direct)');
+    _uniqueIdFuture = uniqueIdFuture;
+    _onHistoryRestored = onHistoryRestored;
+    if (uniqueIdFuture != null) {
+      // Any document from the chat's origin will do — it's never rendered, it
+      // just gives us that origin's localStorage before the chat boots.
+      _bootstrapUrl = '${Uri.parse(url).origin}/robots.txt';
+      _awaitingBootstrap = true;
+    }
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel(
@@ -29,20 +85,55 @@ class QuickChatWebViewService {
           if (uniqueId.isEmpty) {
             uniqueId = _generateUniqueId();
           }
+          // Surface the resolved client uniqueId so the SDK can persist it and
+          // later re-register the FCM token (store-firebase-token) directly —
+          // without needing the chat WebView to be open (e.g. token refresh).
+          onUniqueIdResolved?.call(uniqueId);
           _postTokenToApi(userName, email, fcmToken, uniqueId);
         },
       )
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
-            if (!request.url.contains(url)) {
+            if (request.url != _bootstrapUrl && !request.url.contains(url)) {
               _launchURL(request.url);
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
           },
           onPageFinished: (String pageUrl) async {
+            if (_awaitingBootstrap) {
+              // Nothing user-visible has loaded yet: write the restored id, then
+              // load the chat ONCE, already carrying its history. The lookup was
+              // running while this document loaded, so it's usually done by now.
+              _awaitingBootstrap = false;
+              _mark('bootstrap loaded');
+              _preloadUniqueId = _sanitizeUniqueId(await _uniqueIdFuture);
+              _mark('get-unique-id resolved');
+              if (_preloadUniqueId != null) {
+                _uniqueIdSeeded = await _seedUniqueId();
+                if (_uniqueIdSeeded) _onHistoryRestored?.call();
+              }
+              _mark('id seeded → loading chat');
+              await controller.loadRequest(Uri.parse(url));
+              return;
+            }
+            // Fallback: the bootstrap document couldn't store the id (blocked
+            // storage, request failed). The chat script reads localStorage while
+            // it boots, so seeding now only takes effect after a reload.
+            if (_preloadUniqueId != null &&
+                !_uniqueIdSeeded &&
+                !_reloadedForSeed) {
+              _reloadedForSeed = true;
+              if (await _seedUniqueId()) {
+                _uniqueIdSeeded = true;
+                await controller.reload();
+                return; // onPageFinished fires again after the reload.
+              }
+            }
+            _mark('chat document loaded');
             await _injectViewportAndFetchId();
+            _mark('skeleton out');
             onPageLoaded();
           },
         ),
@@ -55,11 +146,53 @@ class QuickChatWebViewService {
       );
     }
 
-    controller.loadRequest(Uri.parse(url));
+    controller.loadRequest(Uri.parse(_bootstrapUrl ?? url));
+  }
+
+  /// Writes [_preloadUniqueId] into the current document's localStorage.
+  ///
+  /// Returns true once the id is in place — including when it was already the
+  /// stored value, since the caller's only question is "does the chat now have
+  /// the right id?".
+  Future<bool> _seedUniqueId() async {
+    final String? id = _preloadUniqueId;
+    if (id == null) return false;
+
+    try {
+      final result = await controller.runJavaScriptReturningResult("""
+        (function() {
+          try {
+            if (!window.localStorage) return 'false';
+            localStorage.setItem('uniqueId', '$id');
+            return localStorage.getItem('uniqueId') === '$id' ? 'true' : 'false';
+          } catch (e) {
+            return 'false';
+          }
+        })();
+      """);
+      return result.toString().contains('true');
+    } catch (e) {
+      debugPrint('Failed to seed uniqueId into localStorage: $e');
+      return false;
+    }
+  }
+
+  /// Ids come from the network and are interpolated into a JS string literal,
+  /// so anything outside the server's `20250620100400360` shape is dropped.
+  String? _sanitizeUniqueId(String? id) {
+    final String value = id?.trim() ?? '';
+    if (value.isEmpty) return null;
+    if (!RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(value)) {
+      debugPrint('Ignoring unexpected client_unique_id: $value');
+      return null;
+    }
+    return value;
   }
 
   Future<void> _injectViewportAndFetchId() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    // No settle delay: `onPageFinished` already means the DOM is ready, and the
+    // half-second that used to be waited here was pure added latency on every
+    // chat open. Anything the page writes late is still caught by the poll below.
     await controller.runJavaScript("""
       (function() {
         if(document.querySelector('meta[name="viewport"]')) {
@@ -71,11 +204,30 @@ class QuickChatWebViewService {
           document.head.appendChild(meta);
         }
 
-        if(window.localStorage) {
-          var uniqueId = localStorage.getItem('uniqueId');
-          if (uniqueId) {
-            FlutterWebView.postMessage(uniqueId);
+        // The chat page may write the client id to localStorage asynchronously
+        // (after the conversation is established), so poll for it instead of
+        // reading once. Also log every key so we can confirm the real key name.
+        function qcTryPostId() {
+          try {
+            if (!window.localStorage) return false;
+            console.log('QC_LS_KEYS: ' + Object.keys(localStorage).join('|'));
+            var id = localStorage.getItem('uniqueId');
+            console.log('QC_UNIQUEID: ' + id);
+            if (id) {
+              FlutterWebView.postMessage(id);
+              return true;
+            }
+          } catch (e) {
+            console.log('QC_LS_ERR: ' + e);
           }
+          return false;
+        }
+        if (!qcTryPostId()) {
+          var qcTries = 0;
+          var qcTimer = setInterval(function() {
+            qcTries++;
+            if (qcTryPostId() || qcTries > 20) clearInterval(qcTimer);
+          }, 1000);
         }
       })();
     """);

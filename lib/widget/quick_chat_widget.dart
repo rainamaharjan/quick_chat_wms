@@ -9,6 +9,7 @@ import 'package:quick_chat_wms/services/app_preference_service.dart';
 import 'package:quick_chat_wms/services/client_service.dart';
 import 'package:quick_chat_wms/services/secure_storage_service.dart';
 import 'package:quick_chat_wms/services/webview_service.dart';
+import 'package:quick_chat_wms/quick_chat_wms.dart';
 import 'package:quick_chat_wms/widget/chat_skeleton.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -56,6 +57,11 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   bool _skeletonRemoved = false;
 
   String _url = '';
+
+  /// Set when the chat document itself fails to load (server/nginx error or a
+  /// transport failure). Drives the retry UI that replaced the raw error page.
+  QuickChatLoadError? _loadError;
+
   ConnectivityResult _connectionStatus = ConnectivityResult.none;
   late StreamSubscription<ConnectivityResult> _subscription;
 
@@ -172,6 +178,17 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       onFileSelectorToggled: (isActive) {
         if (mounted) setState(() => _isFileSelectorActive = isActive);
       },
+      onLoadError: (error) {
+        // Forward to the host app so field failures on customer devices are
+        // diagnosable (status code, url) via its crash/analytics logging.
+        QuickChatWms.onChatLoadError?.call(error);
+        if (mounted) {
+          setState(() {
+            _loadError = error;
+            _isLoading = false;
+          });
+        }
+      },
       uniqueIdFuture: uniqueIdFuture,
       onHistoryRestored: () {
         // Their conversation is now in localStorage and stays there, so skip
@@ -211,6 +228,17 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     if (mounted) setState(() => _connectionStatus = result);
   }
 
+  /// Re-requests the chat document after a load failure and shows the skeleton
+  /// again while it reloads.
+  void _retryLoad() {
+    setState(() {
+      _loadError = null;
+      _isLoading = true;
+      _skeletonRemoved = false;
+    });
+    _webViewService.retryLoad();
+  }
+
   void _listenToConnectivity() {
     _subscription = Connectivity().onConnectivityChanged.listen((result) {
       if (_connectionStatus == ConnectivityResult.none &&
@@ -228,6 +256,47 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     WidgetsBinding.instance.removeObserver(this);
     _subscription.cancel();
     super.dispose();
+  }
+
+  /// Friendly retry screen shown when the chat document fails to load, in place
+  /// of the raw server (nginx) error page. Shows a compact technical hint (the
+  /// status code) so a field report is actionable.
+  Widget _buildLoadErrorView() {
+    final int? status = _loadError?.statusCode;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
+            const Text(
+              "We couldn't load the chat",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              "Something went wrong on our side. Please try again in a moment.",
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              status != null ? "Error code: $status" : "Connection error",
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _retryLoad,
+              child: const Text("Retry"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -299,7 +368,9 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         ),
       ),
       body: isConnected
-          ? Stack(
+          ? (_loadError != null
+              ? _buildLoadErrorView()
+              : Stack(
               children: [
                 if (_isControllerInitialized)
                   (Platform.isAndroid)
@@ -329,7 +400,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
                     ),
                   ),
               ],
-            )
+            ))
           : Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,

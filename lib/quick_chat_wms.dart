@@ -3,6 +3,7 @@ import 'package:quick_chat_wms/models/prefrence_model.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
 import 'package:quick_chat_wms/services/notification_service.dart';
 import 'package:quick_chat_wms/services/secure_storage_service.dart';
+import 'package:quick_chat_wms/services/webview_service.dart';
 import 'package:quick_chat_wms/widget/quick_chat_widget.dart';
 
 bool isChatScreen = false;
@@ -11,6 +12,12 @@ class QuickChatWms {
   static final AppPreferencesService _prefsService = AppPreferencesService(
     secureStorageService: SecureStorageService(),
   );
+
+  /// Optional hook fired when the chat WebView fails to load its page (server
+  /// error status or transport failure). Set it during app init to forward the
+  /// failure — status code and url, no user content — to crash/analytics
+  /// logging, so failures on customer devices are diagnosable in the field.
+  static QuickChatLoadErrorCallback? onChatLoadError;
 
   static final NotificationHandlerService _notificationService =
       NotificationHandlerService(prefsService: _prefsService);

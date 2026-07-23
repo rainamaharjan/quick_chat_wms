@@ -9,6 +9,39 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Details of a failed chat load, surfaced to the host so it can show a retry
+/// UI instead of the raw server (nginx) error page, and log what actually went
+/// wrong on the device. Carries no user/PII content.
+class QuickChatLoadError {
+  const QuickChatLoadError({
+    required this.description,
+    this.statusCode,
+    this.url,
+    this.isHttpStatus = false,
+  });
+
+  /// HTTP status when the server answered with an error (e.g. 502, 403, 421).
+  /// Null for transport-level failures (DNS, TLS, connection reset).
+  final int? statusCode;
+
+  /// Human-readable description of the failure.
+  final String description;
+
+  /// The URL that failed.
+  final String? url;
+
+  /// True when this came from an HTTP error response, false for a
+  /// [WebResourceError] (transport/render level).
+  final bool isHttpStatus;
+
+  @override
+  String toString() =>
+      'QuickChatLoadError(status: $statusCode, http: $isHttpStatus, '
+      'desc: $description, url: $url)';
+}
+
+typedef QuickChatLoadErrorCallback = void Function(QuickChatLoadError error);
+
 class QuickChatWebViewService {
   late final WebViewController controller;
 
@@ -39,11 +72,24 @@ class QuickChatWebViewService {
   /// can never put us in a reload loop.
   bool _reloadedForSeed = false;
 
-  /// A cheap same-origin document loaded BEFORE the chat, purely so the id can
-  /// be written to localStorage (which is per-origin) while nothing is on
-  /// screen. Without it the chat had to boot once with the wrong id, get the
-  /// id, and reload — which the user saw as chat → loading → chat.
-  String? _bootstrapUrl;
+  /// Origin of the chat URL. A BLANK same-origin document is rendered from it
+  /// BEFORE the chat, purely so the id can be written to localStorage (which is
+  /// per-origin) while nothing is on screen. Without it the chat had to boot
+  /// once with the wrong id, get the id, and reload — which the user saw as
+  /// chat → loading → chat.
+  ///
+  /// This used to navigate to `<origin>/robots.txt`, but that path 404s and the
+  /// raw nginx error page could flash on screen for the ~1s the id lookup takes
+  /// — visible on newer Android WebView, which paints the native view over the
+  /// Flutter skeleton meant to hide it. A blank in-memory page cannot 404.
+  String? _bootstrapOrigin;
+
+  /// Blank, invisible document used only to reach the chat origin's
+  /// localStorage. Rendered via [WebViewController.loadHtmlString] with
+  /// [_bootstrapOrigin] as the base URL so its localStorage is that origin's.
+  static const String _blankBootstrapHtml =
+      '<!doctype html><html><head><meta charset="utf-8"></head>'
+      '<body style="margin:0;background:transparent"></body></html>';
 
   /// True while that bootstrap document is the thing being loaded.
   bool _awaitingBootstrap = false;
@@ -51,6 +97,20 @@ class QuickChatWebViewService {
   /// Called once the history id is in localStorage, so the SDK can remember
   /// this user is restored and skip the whole lookup next time.
   VoidCallback? _onHistoryRestored;
+
+  /// The real chat document URL (mobileChat.html). Kept so load-error handling
+  /// can tell a fatal chat failure apart from the throwaway bootstrap probe and
+  /// from subresource (analytics/asset/XHR) errors inside the loaded page.
+  String? _chatUrl;
+
+  /// Invoked when the MAIN chat document fails to load — an HTTP 4xx/5xx from
+  /// the server (the raw nginx page users used to see) or a transport-level
+  /// web-resource error. Lets the host show a retry UI and log the status.
+  QuickChatLoadErrorCallback? _onLoadError;
+
+  /// One-shot guard so a single failed load (which can fire both onHttpError
+  /// and onWebResourceError) is reported once. Reset by [retryLoad].
+  bool _loadErrorReported = false;
 
   void init({
     required String url,
@@ -63,7 +123,11 @@ class QuickChatWebViewService {
     Function(String uniqueId)? onUniqueIdResolved,
     Future<String?>? uniqueIdFuture,
     VoidCallback? onHistoryRestored,
+    QuickChatLoadErrorCallback? onLoadError,
   }) {
+    _chatUrl = url;
+    _onLoadError = onLoadError;
+    _loadErrorReported = false;
     _openWatch
       ..reset()
       ..start();
@@ -71,9 +135,9 @@ class QuickChatWebViewService {
     _uniqueIdFuture = uniqueIdFuture;
     _onHistoryRestored = onHistoryRestored;
     if (uniqueIdFuture != null) {
-      // Any document from the chat's origin will do — it's never rendered, it
-      // just gives us that origin's localStorage before the chat boots.
-      _bootstrapUrl = '${Uri.parse(url).origin}/robots.txt';
+      // Seed the chat origin's localStorage from a blank same-origin page (see
+      // _blankBootstrapHtml) before the chat boots — no network, no 404.
+      _bootstrapOrigin = Uri.parse(url).origin;
       _awaitingBootstrap = true;
     }
     controller = WebViewController()
@@ -95,8 +159,16 @@ class QuickChatWebViewService {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
-            if (request.url != _bootstrapUrl && !request.url.contains(url)) {
-              _launchURL(request.url);
+            final String reqUrl = request.url;
+            final bool isChat = reqUrl.contains(url);
+            // The blank bootstrap document (about:/data:) and any same-origin
+            // navigation stay in the WebView; only genuine off-site links open
+            // in the external browser.
+            final bool isInApp = reqUrl.startsWith('about:') ||
+                reqUrl.startsWith('data:') ||
+                (_bootstrapOrigin != null && reqUrl.startsWith(_bootstrapOrigin!));
+            if (!isChat && !isInApp) {
+              _launchURL(reqUrl);
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -136,6 +208,46 @@ class QuickChatWebViewService {
             _mark('skeleton out');
             onPageLoaded();
           },
+          // The server (nginx) answered the chat document with an error status
+          // — this is the raw error page users saw before. Report it instead of
+          // rendering it. Subresource and bootstrap failures are non-fatal.
+          onHttpError: (HttpResponseError error) {
+            // WebResourceRequest exposes no main-frame flag here, so failures
+            // are filtered by URL: a subresource (analytics/asset/XHR) won't
+            // match the chat document's path, nor will the bootstrap probe.
+            final String? failedUrl =
+                (error.request?.uri ?? error.response?.uri)?.toString();
+            if (_isBootstrap(failedUrl)) return;
+            if (!_isChatDocument(failedUrl)) return;
+            final int? status = error.response?.statusCode;
+            _mark('chat HTTP error $status');
+            _reportLoadError(
+              QuickChatLoadError(
+                statusCode: status,
+                description: 'Server returned HTTP $status',
+                url: failedUrl,
+                isHttpStatus: true,
+              ),
+            );
+          },
+          // Transport / render-level failure of the main chat document (DNS,
+          // TLS, connection reset). Subresource failures don't break the shell.
+          onWebResourceError: (WebResourceError error) {
+            if (error.isForMainFrame == false) return;
+            if (_isBootstrap(error.url)) return;
+            // A main-frame transport error may carry no URL on some platforms;
+            // a null URL is treated as the chat document, a set one is matched.
+            if (error.url != null && !_isChatDocument(error.url)) return;
+            _mark('chat resource error ${error.errorCode}');
+            _reportLoadError(
+              QuickChatLoadError(
+                statusCode: null,
+                description: error.description,
+                url: error.url,
+                isHttpStatus: false,
+              ),
+            );
+          },
         ),
       );
 
@@ -146,7 +258,46 @@ class QuickChatWebViewService {
       );
     }
 
-    controller.loadRequest(Uri.parse(_bootstrapUrl ?? url));
+    if (_awaitingBootstrap) {
+      // Blank, invisible, same-origin — just to reach this origin's
+      // localStorage before the real chat document loads.
+      controller.loadHtmlString(_blankBootstrapHtml, baseUrl: _bootstrapOrigin);
+    } else {
+      controller.loadRequest(Uri.parse(url));
+    }
+  }
+
+  /// The blank in-memory bootstrap document (about:blank / data:). Any load
+  /// error on it is not a chat failure and must not be surfaced.
+  bool _isBootstrap(String? url) {
+    if (url == null) return false;
+    return url.startsWith('about:') || url.startsWith('data:');
+  }
+
+  /// Whether [url] is the actual chat document, compared on origin + path so a
+  /// differing query string (widgetId) or trailing slash doesn't matter.
+  bool _isChatDocument(String? url) {
+    if (url == null || _chatUrl == null) return false;
+    final Uri? a = Uri.tryParse(url);
+    final Uri? b = Uri.tryParse(_chatUrl!);
+    if (a == null || b == null) return url == _chatUrl;
+    return a.origin == b.origin && a.path == b.path;
+  }
+
+  /// Reports a failed chat load once per load attempt (both onHttpError and
+  /// onWebResourceError can fire for the same failure).
+  void _reportLoadError(QuickChatLoadError error) {
+    if (_loadErrorReported) return;
+    _loadErrorReported = true;
+    debugPrint('QUICKCHAT_LOAD_ERROR $error');
+    _onLoadError?.call(error);
+  }
+
+  /// Re-requests the current document after a failed load, re-arming the
+  /// one-shot error guard so a repeat failure is reported again.
+  Future<void> retryLoad() async {
+    _loadErrorReported = false;
+    await controller.reload();
   }
 
   /// Writes [_preloadUniqueId] into the current document's localStorage.

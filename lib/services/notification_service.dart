@@ -109,6 +109,7 @@ class NotificationHandlerService {
   ) async {
     final url = Uri.parse('$quickChatBaseUrl/api/api/v1/store-firebase-token');
     final body = {
+      'token': quickChatStaticToken,
       'user_name': username,
       'email': email,
       'firebase_token': fcmToken,

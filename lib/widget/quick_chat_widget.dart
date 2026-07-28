@@ -155,7 +155,16 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     try {
       final String restoredFor =
           await SecureStorageService().read(key: kRestoredUserKey) ?? '';
-      return restoredFor != userName;
+      final bool needs = restoredFor != userName;
+      if (kDebugMode) {
+        debugPrint(
+          'QUICKCHAT_GET_UNIQUE_ID gate: userName="$userName" '
+          'restoredMarker="$restoredFor" needsRestore=$needs '
+          '(false ⇒ get-unique-id is SKIPPED, chat uses whatever is in '
+          'localStorage)',
+        );
+      }
+      return needs;
     } catch (e) {
       debugPrint('Could not read restore marker: $e');
       return true;

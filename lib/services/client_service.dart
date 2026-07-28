@@ -15,15 +15,40 @@ class ClientService {
     required String widgetCode,
     required String userName,
   }) async {
-    if (widgetCode.isEmpty || userName.isEmpty) return null;
+    if (widgetCode.isEmpty || userName.isEmpty) {
+      // Debug-only: kDebugMode so the payload (which carries the token) never
+      // reaches release logs.
+      if (kDebugMode) {
+        debugPrint(
+          'QUICKCHAT_GET_UNIQUE_ID skipped: widgetCode.isEmpty='
+          '${widgetCode.isEmpty}, userName.isEmpty=${userName.isEmpty}',
+        );
+      }
+      return null;
+    }
 
     final url = Uri.parse('$quickChatBaseUrl/api/api/v1/get-unique-id');
+    final payload = jsonEncode({
+      'token': quickChatStaticToken,
+      'user_name': userName,
+    });
+    if (kDebugMode) {
+      debugPrint('QUICKCHAT_GET_UNIQUE_ID POST $url');
+      debugPrint('QUICKCHAT_GET_UNIQUE_ID payload: $payload');
+    }
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'token': widgetCode, 'user_name': userName}),
+        body: payload,
       );
+
+      if (kDebugMode) {
+        debugPrint(
+          'QUICKCHAT_GET_UNIQUE_ID response ${response.statusCode}: '
+          '${response.body}',
+        );
+      }
 
       if (response.statusCode != 200) {
         debugPrint(
@@ -37,9 +62,17 @@ class ClientService {
       final message = (decoded is Map) ? decoded['message'] : null;
       final id = (message is Map) ? message['client_unique_id'] : null;
       final resolved = id?.toString().trim() ?? '';
+      if (kDebugMode) {
+        debugPrint(
+          'QUICKCHAT_GET_UNIQUE_ID resolved client_unique_id for '
+          '"$userName": ${resolved.isEmpty ? '<null/empty → fresh chat>' : resolved}',
+        );
+      }
       return resolved.isEmpty ? null : resolved;
     } catch (e) {
-      debugPrint('Error fetching client unique id: $e');
+      if (kDebugMode) {
+        debugPrint('QUICKCHAT_GET_UNIQUE_ID error for "$userName": $e');
+      }
       return null;
     }
   }

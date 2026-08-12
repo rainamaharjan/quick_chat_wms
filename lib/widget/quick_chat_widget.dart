@@ -237,6 +237,62 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     if (mounted) setState(() => _connectionStatus = result);
   }
 
+  /// Recovers the chat when iOS killed WKWebView's WebContent process while the
+  /// app sat in the background.
+  ///
+  /// [initState] has always registered this widget as a [WidgetsBindingObserver]
+  /// but never implemented this method, so the registration did nothing. The
+  /// symptom was a chat that came back as a blank white panel after the app had
+  /// been in the recents list for a few minutes — the `WKWebView` is still
+  /// there and still mounted, only its renderer is gone, so neither the load
+  /// error path nor the connectivity listener ever fired.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused) {
+      _backgroundedAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      _recoverWebContentIfNeeded();
+    }
+  }
+
+  /// When the app was last backgrounded, so the resume log says how long the
+  /// chat was away — the renderer is only reclaimed after a while, so a report
+  /// of "blank after 5 minutes" is a different bug from "blank after 5 seconds".
+  DateTime? _backgroundedAt;
+
+  Future<void> _recoverWebContentIfNeeded() async {
+    final int awaySeconds = _backgroundedAt == null
+        ? -1
+        : DateTime.now().difference(_backgroundedAt!).inSeconds;
+    _backgroundedAt = null;
+
+    // Nothing to probe yet, and while the retry UI is up the WebView isn't the
+    // thing on screen — _retryLoad is the user's route back from there.
+    if (!_isControllerInitialized || _loadError != null) {
+      debugPrint('QUICKCHAT_RESUME away=${awaySeconds}s skipped '
+          'init=$_isControllerInitialized error=${_loadError != null}');
+      return;
+    }
+
+    final String? url = await _webViewService.currentUrlSafe();
+    final bool alive = await _webViewService.isWebContentAlive();
+    debugPrint(
+        'QUICKCHAT_RESUME away=${awaySeconds}s alive=$alive url=$url');
+
+    if (alive || !mounted) return;
+
+    await _webViewService.recoveryReload();
+    if (!mounted) return;
+
+    // Put the skeleton back so the recovery reads as loading rather than as a
+    // blank panel that quietly fills in.
+    setState(() {
+      _isLoading = true;
+      _skeletonRemoved = false;
+    });
+  }
+
   /// Re-requests the chat document after a load failure and shows the skeleton
   /// again while it reloads.
   void _retryLoad() {
@@ -264,6 +320,10 @@ class QuickChatWidgetState extends State<QuickChatWidget>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription.cancel();
+    // Stops the bootstrap watchdog so a torn-down chat can't fire a load into
+    // a dead controller (the host tears this widget down whenever the app is
+    // backgrounded with the window closed).
+    if (_isControllerInitialized) _webViewService.dispose();
     super.dispose();
   }
 

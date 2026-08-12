@@ -20,6 +20,27 @@ class PermissionService {
     return (await Permission.camera.status).isPermanentlyDenied;
   }
 
+  /// Whether the camera is usable right now, without prompting.
+  Future<bool> isCameraGranted() async {
+    return (await Permission.camera.status).isGranted;
+  }
+
+  /// True when the user has never answered the camera prompt, so requesting it
+  /// will actually surface the system dialog.
+  ///
+  /// iOS reports the undecided state as `denied` and only ever moves to
+  /// `permanentlyDenied` once the user has said no, so "can the OS still ask?"
+  /// is `denied && !permanentlyDenied` rather than [PermissionStatus.denied]
+  /// on its own — which is true in BOTH cases and would make the caller keep
+  /// requesting a dialog that can never appear again.
+  Future<bool> isCameraUndecided() async {
+    if (Platform.isIOS) {
+      final PermissionStatus status = await Permission.camera.status;
+      return status.isDenied && !status.isPermanentlyDenied;
+    }
+    return (await Permission.camera.status).isDenied;
+  }
+
   /// Opens the OS app-settings page for this app.
   Future<void> openSettings() => openAppSettings();
 

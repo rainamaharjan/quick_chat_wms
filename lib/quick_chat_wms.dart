@@ -22,6 +22,20 @@ class QuickChatWms {
   static final NotificationHandlerService _notificationService =
       NotificationHandlerService(prefsService: _prefsService);
 
+  /// True while an upload picker opened by the chat is on screen.
+  ///
+  /// The host MUST NOT tear the chat's WebView down while this is set. Putting
+  /// up the camera or the photo library drives the app through the same
+  /// lifecycle transition as the user leaving, and a host that reacts to that
+  /// by dropping the WebView destroys the page the picked file is about to be
+  /// handed back to — the upload then completes into a view that is no longer
+  /// on screen, so the file silently never arrives and the chat looks like it
+  /// closed itself.
+  ///
+  /// A plain static because the host reads it from its own lifecycle observer,
+  /// with no reference to this widget or its controller.
+  static bool isFileSelectorActive = false;
+
   // CHANGED: void -> Future<void>
   static Future<void> init(
     BuildContext context, {

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:quick_chat_wms/quick_chat_wms.dart';
 import 'package:quick_chat_wms/services/notification_service.dart';
 import 'package:quick_chat_wms/services/permission_service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -123,6 +124,16 @@ class QuickChatWebViewService {
   /// iOS gate can raise it from the JavaScript channel, the same way the
   /// Android selector does from its own callback.
   Function(bool)? _onFileSelectorToggled;
+
+  /// Raises both the host callback and [QuickChatWms.isFileSelectorActive].
+  ///
+  /// The static is what a host lifecycle observer can see; the callback is what
+  /// this widget's own state listens to. Both must move together, so nothing
+  /// sets one without the other.
+  void _setFileSelectorActive(bool active) {
+    QuickChatWms.isFileSelectorActive = active;
+    _onFileSelectorToggled?.call(active);
+  }
 
   void init({
     required String url,
@@ -614,7 +625,7 @@ class QuickChatWebViewService {
 
     // Mirrors the Android path: tells the host a picker is up, so the chat is
     // not treated as idle while the user is off in the photo library.
-    _onFileSelectorToggled?.call(true);
+    _setFileSelectorActive(true);
     try {
       final String? choice = await showModalBottomSheet<String>(
         context: context,
@@ -717,7 +728,7 @@ class QuickChatWebViewService {
     } catch (e) {
       debugPrint('QUICKCHAT iOS upload failed: $e');
     } finally {
-      _onFileSelectorToggled?.call(false);
+      _setFileSelectorActive(false);
     }
   }
 
@@ -896,7 +907,7 @@ class QuickChatWebViewService {
     BuildContext context,
     Function(bool) onFileSelectorToggled,
   ) async {
-    onFileSelectorToggled(true);
+    _setFileSelectorActive(true);
 
     try {
       // Show the upload options first so the user always sees Camera / Gallery /
@@ -997,7 +1008,7 @@ class QuickChatWebViewService {
     } catch (e) {
       debugPrint('Error picking file: $e');
     } finally {
-      onFileSelectorToggled(false);
+      _setFileSelectorActive(false);
     }
 
     return [];

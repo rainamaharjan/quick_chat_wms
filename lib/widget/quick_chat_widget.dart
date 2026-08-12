@@ -269,9 +269,15 @@ class QuickChatWidgetState extends State<QuickChatWidget>
 
     // Nothing to probe yet, and while the retry UI is up the WebView isn't the
     // thing on screen — _retryLoad is the user's route back from there.
-    if (!_isControllerInitialized || _loadError != null) {
+    //
+    // Also skipped while our own upload picker is what took the app away: the
+    // resume is the camera or photo library handing back, and a recoveryReload
+    // here would reload the page out from under the file about to be injected
+    // into it — losing the upload and flashing the skeleton for no reason.
+    if (!_isControllerInitialized || _loadError != null || _isFileSelectorActive) {
       debugPrint('QUICKCHAT_RESUME away=${awaySeconds}s skipped '
-          'init=$_isControllerInitialized error=${_loadError != null}');
+          'init=$_isControllerInitialized error=${_loadError != null} '
+          'picker=$_isFileSelectorActive');
       return;
     }
 

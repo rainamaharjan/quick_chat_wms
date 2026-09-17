@@ -45,6 +45,7 @@ class QuickChatWms {
     Color appBarBackgroundColor = Colors.blueAccent,
     Color appBarTitleColor = Colors.white,
     Color appBarBackButtonColor = Colors.white,
+    
   }) async {
     debugPrint("Quick chat ---------- start chat");
 

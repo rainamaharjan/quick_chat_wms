@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:quick_chat_wms/models/environment.dart';
 
 part 'prefrence_model.freezed.dart';
 part 'prefrence_model.g.dart';
@@ -28,6 +29,7 @@ abstract class AppPreferences with _$AppPreferences {
     @Default('') String userName,
     @Default('') String email,
     @Default(false) bool resetLocalStorage,
+    @Default(Environment.prod) Environment environment,
   }) = _AppPreferences;
 
   factory AppPreferences.fromJson(Map<String, dynamic> json) =>

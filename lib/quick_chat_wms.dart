@@ -6,6 +6,8 @@ import 'package:quick_chat_wms/services/secure_storage_service.dart';
 import 'package:quick_chat_wms/services/webview_service.dart';
 import 'package:quick_chat_wms/widget/quick_chat_widget.dart';
 
+import 'models/environment.dart';
+
 bool isChatScreen = false;
 
 class QuickChatWms {
@@ -45,7 +47,7 @@ class QuickChatWms {
     Color appBarBackgroundColor = Colors.blueAccent,
     Color appBarTitleColor = Colors.white,
     Color appBarBackButtonColor = Colors.white,
-    
+    Environment? environment = Environment.prod,
   }) async {
     debugPrint("Quick chat ---------- start chat");
 
@@ -57,6 +59,7 @@ class QuickChatWms {
         appBarBackgroundColor: appBarBackgroundColor,
         appBarTitleColor: appBarTitleColor,
         appBarBackButtonColor: appBarBackButtonColor,
+        environment: environment ?? Environment.prod,
       ),
     );
   }
@@ -170,8 +173,6 @@ class QuickChatWms {
 
   // This was already Future<void>, which is correct!
   static Future<void> resetUser() async {
-
-
     await _prefsService.clearAllPreferences();
     await _prefsService.updatePreferences(
       data: (currentData) => AppPreferences(),

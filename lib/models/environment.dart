@@ -1,4 +1,1 @@
-enum Environment {
-    uat,
-    prod
-}
+enum Environment { uat, prod }

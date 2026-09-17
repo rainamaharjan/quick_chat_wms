@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:quick_chat_wms/models/environment.dart';
 import 'package:quick_chat_wms/models/prefrence_model.dart';
 import 'package:quick_chat_wms/services/api_config.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
@@ -136,6 +137,11 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       );
     }
 
+    final String baseUrl =
+        (await _prefsService.getPreferences()).environment == Environment.prod
+        ? quickChatBaseUrl
+        : quickChatBaseUrlUAT;
+
     if (!mounted) return;
 
     setState(() {
@@ -143,7 +149,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       _isCheckingPermissions = false;
 
       _url =
-          '$quickChatBaseUrl/chat-sdk-script/mobileChat.html?widgetId=${_prefs.widgetCode}';
+          '$baseUrl/chat-sdk-script/mobileChat.html?widgetId=${_prefs.widgetCode}';
     });
 
     _initializeWebView(uniqueIdFuture: uniqueIdFuture, userName: userName);
@@ -208,10 +214,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
         // Persist so QuickChatWms.setFcmToken can re-register the token later
         // without the chat being open (see quick_chat_wms.dart).
         if (id.isNotEmpty) {
-          SecureStorageService().write(
-            key: 'qc_client_unique_id',
-            value: id,
-          );
+          SecureStorageService().write(key: 'qc_client_unique_id', value: id);
         }
       },
     );
@@ -274,17 +277,20 @@ class QuickChatWidgetState extends State<QuickChatWidget>
     // resume is the camera or photo library handing back, and a recoveryReload
     // here would reload the page out from under the file about to be injected
     // into it — losing the upload and flashing the skeleton for no reason.
-    if (!_isControllerInitialized || _loadError != null || _isFileSelectorActive) {
-      debugPrint('QUICKCHAT_RESUME away=${awaySeconds}s skipped '
-          'init=$_isControllerInitialized error=${_loadError != null} '
-          'picker=$_isFileSelectorActive');
+    if (!_isControllerInitialized ||
+        _loadError != null ||
+        _isFileSelectorActive) {
+      debugPrint(
+        'QUICKCHAT_RESUME away=${awaySeconds}s skipped '
+        'init=$_isControllerInitialized error=${_loadError != null} '
+        'picker=$_isFileSelectorActive',
+      );
       return;
     }
 
     final String? url = await _webViewService.currentUrlSafe();
     final bool alive = await _webViewService.isWebContentAlive();
-    debugPrint(
-        'QUICKCHAT_RESUME away=${awaySeconds}s alive=$alive url=$url');
+    debugPrint('QUICKCHAT_RESUME away=${awaySeconds}s alive=$alive url=$url');
 
     if (alive || !mounted) return;
 
@@ -364,10 +370,7 @@ class QuickChatWidgetState extends State<QuickChatWidget>
               style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _retryLoad,
-              child: const Text("Retry"),
-            ),
+            ElevatedButton(onPressed: _retryLoad, child: const Text("Retry")),
           ],
         ),
       ),
@@ -423,16 +426,16 @@ class QuickChatWidgetState extends State<QuickChatWidget>
               color: _prefs.appBarBackButtonColor,
             ),
             onPressed: () {
-                if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                if (Platform.isAndroid) {
+                  SystemNavigator.pop();
                 } else {
-                  if (Platform.isAndroid) {
-                    SystemNavigator.pop();
-                  } else {
-                    exit(0);
-                  }
+                  exit(0);
                 }
               }
+            },
           ),
           title: Text(
             _prefs.appBarTitle,
@@ -444,38 +447,41 @@ class QuickChatWidgetState extends State<QuickChatWidget>
       ),
       body: isConnected
           ? (_loadError != null
-              ? _buildLoadErrorView()
-              : Stack(
-              children: [
-                if (_isControllerInitialized)
-                  (Platform.isAndroid)
-                      ? WebViewWidget.fromPlatformCreationParams(
-                          params: AndroidWebViewWidgetCreationParams(
-                            controller: _webViewService.controller.platform,
-                            displayWithHybridComposition: true,
+                ? _buildLoadErrorView()
+                : Stack(
+                    children: [
+                      if (_isControllerInitialized)
+                        (Platform.isAndroid)
+                            ? WebViewWidget.fromPlatformCreationParams(
+                                params: AndroidWebViewWidgetCreationParams(
+                                  controller:
+                                      _webViewService.controller.platform,
+                                  displayWithHybridComposition: true,
+                                ),
+                              )
+                            : WebViewWidget(
+                                controller: _webViewService.controller,
+                              ),
+                      // Kept in the tree until the fade-out finishes, so the skeleton
+                      // dissolves into the conversation instead of cutting to it.
+                      if (!_skeletonRemoved)
+                        IgnorePointer(
+                          child: AnimatedOpacity(
+                            opacity: _showSkeleton ? 1 : 0,
+                            duration: const Duration(milliseconds: 280),
+                            onEnd: () {
+                              if (!_showSkeleton && mounted) {
+                                setState(() => _skeletonRemoved = true);
+                              }
+                            },
+                            child: ChatSkeleton(
+                              backgroundColor: _prefs.backgroundColor,
+                              accentColor: _prefs.appBarBackgroundColor,
+                            ),
                           ),
-                        )
-                      : WebViewWidget(controller: _webViewService.controller),
-                // Kept in the tree until the fade-out finishes, so the skeleton
-                // dissolves into the conversation instead of cutting to it.
-                if (!_skeletonRemoved)
-                  IgnorePointer(
-                    child: AnimatedOpacity(
-                      opacity: _showSkeleton ? 1 : 0,
-                      duration: const Duration(milliseconds: 280),
-                      onEnd: () {
-                        if (!_showSkeleton && mounted) {
-                          setState(() => _skeletonRemoved = true);
-                        }
-                      },
-                      child: ChatSkeleton(
-                        backgroundColor: _prefs.backgroundColor,
-                        accentColor: _prefs.appBarBackgroundColor,
-                      ),
-                    ),
-                  ),
-              ],
-            ))
+                        ),
+                    ],
+                  ))
           : Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,

@@ -2,7 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:quick_chat_wms/models/environment.dart';
 import 'package:quick_chat_wms/services/api_config.dart';
+import 'package:quick_chat_wms/services/app_preference_service.dart';
+import 'package:quick_chat_wms/services/secure_storage_service.dart';
 
 class ClientService {
   /// Asks the server for the `client_unique_id` already issued to [userName].
@@ -26,8 +29,15 @@ class ClientService {
       }
       return null;
     }
+    final AppPreferencesService _prefsService = AppPreferencesService(
+      secureStorageService: SecureStorageService(),
+    );
+    final String baseUrl =
+        (await _prefsService.getPreferences()).environment == Environment.prod
+        ? quickChatBaseUrl
+        : quickChatBaseUrlUAT;
 
-    final url = Uri.parse('$quickChatBaseUrl/api/api/v1/get-unique-id');
+    final url = Uri.parse('$baseUrl/api/api/v1/get-unique-id');
     final payload = jsonEncode({
       'token': quickChatStaticToken,
       'user_name': userName,

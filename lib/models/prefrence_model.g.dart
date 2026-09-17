@@ -34,6 +34,9 @@ _AppPreferences _$AppPreferencesFromJson(Map<String, dynamic> json) =>
       userName: json['userName'] as String? ?? '',
       email: json['email'] as String? ?? '',
       resetLocalStorage: json['resetLocalStorage'] as bool? ?? false,
+      environment:
+          $enumDecodeNullable(_$EnvironmentEnumMap, json['environment']) ??
+          Environment.prod,
     );
 
 Map<String, dynamic> _$AppPreferencesToJson(
@@ -53,4 +56,7 @@ Map<String, dynamic> _$AppPreferencesToJson(
   'userName': instance.userName,
   'email': instance.email,
   'resetLocalStorage': instance.resetLocalStorage,
+  'environment': _$EnvironmentEnumMap[instance.environment]!,
 };
+
+const _$EnvironmentEnumMap = {Environment.uat: 'uat', Environment.prod: 'prod'};

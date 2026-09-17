@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
+import 'package:quick_chat_wms/models/environment.dart';
 import 'package:quick_chat_wms/quick_chat_wms.dart';
 import 'package:quick_chat_wms/services/api_config.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
+import 'package:quick_chat_wms/services/secure_storage_service.dart';
 
 class NotificationHandlerService {
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
@@ -107,7 +109,14 @@ class NotificationHandlerService {
     String fcmToken,
     String uniqueId,
   ) async {
-    final url = Uri.parse('$quickChatBaseUrl/api/api/v1/store-firebase-token');
+    final AppPreferencesService _prefsService = AppPreferencesService(
+      secureStorageService: SecureStorageService(),
+    );
+    final String baseUrl =
+        (await _prefsService.getPreferences()).environment == Environment.prod
+        ? quickChatBaseUrl
+        : quickChatBaseUrlUAT;
+    final url = Uri.parse('$baseUrl/api/api/v1/store-firebase-token');
     final body = {
       'token': quickChatStaticToken,
       'user_name': username,

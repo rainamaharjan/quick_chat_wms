@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppPreferences {
 
- String get widgetCode;@ColorConverter() Color get backgroundColor; String get appBarTitle;@ColorConverter() Color get appBarBackgroundColor;@ColorConverter() Color get appBarTitleColor;@ColorConverter() Color get appBarBackButtonColor; String get fcmToken; String get userName; String get email; bool get resetLocalStorage;
+ String get widgetCode;@ColorConverter() Color get backgroundColor; String get appBarTitle;@ColorConverter() Color get appBarBackgroundColor;@ColorConverter() Color get appBarTitleColor;@ColorConverter() Color get appBarBackButtonColor; String get fcmToken; String get userName; String get email; bool get resetLocalStorage; Environment get environment;
 /// Create a copy of AppPreferences
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $AppPreferencesCopyWith<AppPreferences> get copyWith => _$AppPreferencesCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppPreferences&&(identical(other.widgetCode, widgetCode) || other.widgetCode == widgetCode)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.appBarTitle, appBarTitle) || other.appBarTitle == appBarTitle)&&(identical(other.appBarBackgroundColor, appBarBackgroundColor) || other.appBarBackgroundColor == appBarBackgroundColor)&&(identical(other.appBarTitleColor, appBarTitleColor) || other.appBarTitleColor == appBarTitleColor)&&(identical(other.appBarBackButtonColor, appBarBackButtonColor) || other.appBarBackButtonColor == appBarBackButtonColor)&&(identical(other.fcmToken, fcmToken) || other.fcmToken == fcmToken)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.email, email) || other.email == email)&&(identical(other.resetLocalStorage, resetLocalStorage) || other.resetLocalStorage == resetLocalStorage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppPreferences&&(identical(other.widgetCode, widgetCode) || other.widgetCode == widgetCode)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.appBarTitle, appBarTitle) || other.appBarTitle == appBarTitle)&&(identical(other.appBarBackgroundColor, appBarBackgroundColor) || other.appBarBackgroundColor == appBarBackgroundColor)&&(identical(other.appBarTitleColor, appBarTitleColor) || other.appBarTitleColor == appBarTitleColor)&&(identical(other.appBarBackButtonColor, appBarBackButtonColor) || other.appBarBackButtonColor == appBarBackButtonColor)&&(identical(other.fcmToken, fcmToken) || other.fcmToken == fcmToken)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.email, email) || other.email == email)&&(identical(other.resetLocalStorage, resetLocalStorage) || other.resetLocalStorage == resetLocalStorage)&&(identical(other.environment, environment) || other.environment == environment));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,widgetCode,backgroundColor,appBarTitle,appBarBackgroundColor,appBarTitleColor,appBarBackButtonColor,fcmToken,userName,email,resetLocalStorage);
+int get hashCode => Object.hash(runtimeType,widgetCode,backgroundColor,appBarTitle,appBarBackgroundColor,appBarTitleColor,appBarBackButtonColor,fcmToken,userName,email,resetLocalStorage,environment);
 
 @override
 String toString() {
-  return 'AppPreferences(widgetCode: $widgetCode, backgroundColor: $backgroundColor, appBarTitle: $appBarTitle, appBarBackgroundColor: $appBarBackgroundColor, appBarTitleColor: $appBarTitleColor, appBarBackButtonColor: $appBarBackButtonColor, fcmToken: $fcmToken, userName: $userName, email: $email, resetLocalStorage: $resetLocalStorage)';
+  return 'AppPreferences(widgetCode: $widgetCode, backgroundColor: $backgroundColor, appBarTitle: $appBarTitle, appBarBackgroundColor: $appBarBackgroundColor, appBarTitleColor: $appBarTitleColor, appBarBackButtonColor: $appBarBackButtonColor, fcmToken: $fcmToken, userName: $userName, email: $email, resetLocalStorage: $resetLocalStorage, environment: $environment)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $AppPreferencesCopyWith<$Res>  {
   factory $AppPreferencesCopyWith(AppPreferences value, $Res Function(AppPreferences) _then) = _$AppPreferencesCopyWithImpl;
 @useResult
 $Res call({
- String widgetCode,@ColorConverter() Color backgroundColor, String appBarTitle,@ColorConverter() Color appBarBackgroundColor,@ColorConverter() Color appBarTitleColor,@ColorConverter() Color appBarBackButtonColor, String fcmToken, String userName, String email, bool resetLocalStorage
+ String widgetCode,@ColorConverter() Color backgroundColor, String appBarTitle,@ColorConverter() Color appBarBackgroundColor,@ColorConverter() Color appBarTitleColor,@ColorConverter() Color appBarBackButtonColor, String fcmToken, String userName, String email, bool resetLocalStorage, Environment environment
 });
 
 
@@ -65,7 +65,7 @@ class _$AppPreferencesCopyWithImpl<$Res>
 
 /// Create a copy of AppPreferences
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? widgetCode = null,Object? backgroundColor = null,Object? appBarTitle = null,Object? appBarBackgroundColor = null,Object? appBarTitleColor = null,Object? appBarBackButtonColor = null,Object? fcmToken = null,Object? userName = null,Object? email = null,Object? resetLocalStorage = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? widgetCode = null,Object? backgroundColor = null,Object? appBarTitle = null,Object? appBarBackgroundColor = null,Object? appBarTitleColor = null,Object? appBarBackButtonColor = null,Object? fcmToken = null,Object? userName = null,Object? email = null,Object? resetLocalStorage = null,Object? environment = null,}) {
   return _then(_self.copyWith(
 widgetCode: null == widgetCode ? _self.widgetCode : widgetCode // ignore: cast_nullable_to_non_nullable
 as String,backgroundColor: null == backgroundColor ? _self.backgroundColor : backgroundColor // ignore: cast_nullable_to_non_nullable
@@ -77,7 +77,8 @@ as Color,fcmToken: null == fcmToken ? _self.fcmToken : fcmToken // ignore: cast_
 as String,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,resetLocalStorage: null == resetLocalStorage ? _self.resetLocalStorage : resetLocalStorage // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,environment: null == environment ? _self.environment : environment // ignore: cast_nullable_to_non_nullable
+as Environment,
   ));
 }
 
@@ -162,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String widgetCode, @ColorConverter()  Color backgroundColor,  String appBarTitle, @ColorConverter()  Color appBarBackgroundColor, @ColorConverter()  Color appBarTitleColor, @ColorConverter()  Color appBarBackButtonColor,  String fcmToken,  String userName,  String email,  bool resetLocalStorage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String widgetCode, @ColorConverter()  Color backgroundColor,  String appBarTitle, @ColorConverter()  Color appBarBackgroundColor, @ColorConverter()  Color appBarTitleColor, @ColorConverter()  Color appBarBackButtonColor,  String fcmToken,  String userName,  String email,  bool resetLocalStorage,  Environment environment)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppPreferences() when $default != null:
-return $default(_that.widgetCode,_that.backgroundColor,_that.appBarTitle,_that.appBarBackgroundColor,_that.appBarTitleColor,_that.appBarBackButtonColor,_that.fcmToken,_that.userName,_that.email,_that.resetLocalStorage);case _:
+return $default(_that.widgetCode,_that.backgroundColor,_that.appBarTitle,_that.appBarBackgroundColor,_that.appBarTitleColor,_that.appBarBackButtonColor,_that.fcmToken,_that.userName,_that.email,_that.resetLocalStorage,_that.environment);case _:
   return orElse();
 
 }
@@ -183,10 +184,10 @@ return $default(_that.widgetCode,_that.backgroundColor,_that.appBarTitle,_that.a
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String widgetCode, @ColorConverter()  Color backgroundColor,  String appBarTitle, @ColorConverter()  Color appBarBackgroundColor, @ColorConverter()  Color appBarTitleColor, @ColorConverter()  Color appBarBackButtonColor,  String fcmToken,  String userName,  String email,  bool resetLocalStorage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String widgetCode, @ColorConverter()  Color backgroundColor,  String appBarTitle, @ColorConverter()  Color appBarBackgroundColor, @ColorConverter()  Color appBarTitleColor, @ColorConverter()  Color appBarBackButtonColor,  String fcmToken,  String userName,  String email,  bool resetLocalStorage,  Environment environment)  $default,) {final _that = this;
 switch (_that) {
 case _AppPreferences():
-return $default(_that.widgetCode,_that.backgroundColor,_that.appBarTitle,_that.appBarBackgroundColor,_that.appBarTitleColor,_that.appBarBackButtonColor,_that.fcmToken,_that.userName,_that.email,_that.resetLocalStorage);case _:
+return $default(_that.widgetCode,_that.backgroundColor,_that.appBarTitle,_that.appBarBackgroundColor,_that.appBarTitleColor,_that.appBarBackButtonColor,_that.fcmToken,_that.userName,_that.email,_that.resetLocalStorage,_that.environment);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +204,10 @@ return $default(_that.widgetCode,_that.backgroundColor,_that.appBarTitle,_that.a
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String widgetCode, @ColorConverter()  Color backgroundColor,  String appBarTitle, @ColorConverter()  Color appBarBackgroundColor, @ColorConverter()  Color appBarTitleColor, @ColorConverter()  Color appBarBackButtonColor,  String fcmToken,  String userName,  String email,  bool resetLocalStorage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String widgetCode, @ColorConverter()  Color backgroundColor,  String appBarTitle, @ColorConverter()  Color appBarBackgroundColor, @ColorConverter()  Color appBarTitleColor, @ColorConverter()  Color appBarBackButtonColor,  String fcmToken,  String userName,  String email,  bool resetLocalStorage,  Environment environment)?  $default,) {final _that = this;
 switch (_that) {
 case _AppPreferences() when $default != null:
-return $default(_that.widgetCode,_that.backgroundColor,_that.appBarTitle,_that.appBarBackgroundColor,_that.appBarTitleColor,_that.appBarBackButtonColor,_that.fcmToken,_that.userName,_that.email,_that.resetLocalStorage);case _:
+return $default(_that.widgetCode,_that.backgroundColor,_that.appBarTitle,_that.appBarBackgroundColor,_that.appBarTitleColor,_that.appBarBackButtonColor,_that.fcmToken,_that.userName,_that.email,_that.resetLocalStorage,_that.environment);case _:
   return null;
 
 }
@@ -218,7 +219,7 @@ return $default(_that.widgetCode,_that.backgroundColor,_that.appBarTitle,_that.a
 @JsonSerializable()
 
 class _AppPreferences implements AppPreferences {
-  const _AppPreferences({this.widgetCode = '', @ColorConverter() this.backgroundColor = const Color(0xFFFFFFFF), this.appBarTitle = 'Chat With Us', @ColorConverter() this.appBarBackgroundColor = const Color(0xFF0000FF), @ColorConverter() this.appBarTitleColor = const Color(0xFFFFFFFF), @ColorConverter() this.appBarBackButtonColor = const Color(0xFFFFFFFF), this.fcmToken = '', this.userName = '', this.email = '', this.resetLocalStorage = false});
+  const _AppPreferences({this.widgetCode = '', @ColorConverter() this.backgroundColor = const Color(0xFFFFFFFF), this.appBarTitle = 'Chat With Us', @ColorConverter() this.appBarBackgroundColor = const Color(0xFF0000FF), @ColorConverter() this.appBarTitleColor = const Color(0xFFFFFFFF), @ColorConverter() this.appBarBackButtonColor = const Color(0xFFFFFFFF), this.fcmToken = '', this.userName = '', this.email = '', this.resetLocalStorage = false, this.environment = Environment.prod});
   factory _AppPreferences.fromJson(Map<String, dynamic> json) => _$AppPreferencesFromJson(json);
 
 @override@JsonKey() final  String widgetCode;
@@ -231,6 +232,7 @@ class _AppPreferences implements AppPreferences {
 @override@JsonKey() final  String userName;
 @override@JsonKey() final  String email;
 @override@JsonKey() final  bool resetLocalStorage;
+@override@JsonKey() final  Environment environment;
 
 /// Create a copy of AppPreferences
 /// with the given fields replaced by the non-null parameter values.
@@ -245,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppPreferences&&(identical(other.widgetCode, widgetCode) || other.widgetCode == widgetCode)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.appBarTitle, appBarTitle) || other.appBarTitle == appBarTitle)&&(identical(other.appBarBackgroundColor, appBarBackgroundColor) || other.appBarBackgroundColor == appBarBackgroundColor)&&(identical(other.appBarTitleColor, appBarTitleColor) || other.appBarTitleColor == appBarTitleColor)&&(identical(other.appBarBackButtonColor, appBarBackButtonColor) || other.appBarBackButtonColor == appBarBackButtonColor)&&(identical(other.fcmToken, fcmToken) || other.fcmToken == fcmToken)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.email, email) || other.email == email)&&(identical(other.resetLocalStorage, resetLocalStorage) || other.resetLocalStorage == resetLocalStorage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppPreferences&&(identical(other.widgetCode, widgetCode) || other.widgetCode == widgetCode)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.appBarTitle, appBarTitle) || other.appBarTitle == appBarTitle)&&(identical(other.appBarBackgroundColor, appBarBackgroundColor) || other.appBarBackgroundColor == appBarBackgroundColor)&&(identical(other.appBarTitleColor, appBarTitleColor) || other.appBarTitleColor == appBarTitleColor)&&(identical(other.appBarBackButtonColor, appBarBackButtonColor) || other.appBarBackButtonColor == appBarBackButtonColor)&&(identical(other.fcmToken, fcmToken) || other.fcmToken == fcmToken)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.email, email) || other.email == email)&&(identical(other.resetLocalStorage, resetLocalStorage) || other.resetLocalStorage == resetLocalStorage)&&(identical(other.environment, environment) || other.environment == environment));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,widgetCode,backgroundColor,appBarTitle,appBarBackgroundColor,appBarTitleColor,appBarBackButtonColor,fcmToken,userName,email,resetLocalStorage);
+int get hashCode => Object.hash(runtimeType,widgetCode,backgroundColor,appBarTitle,appBarBackgroundColor,appBarTitleColor,appBarBackButtonColor,fcmToken,userName,email,resetLocalStorage,environment);
 
 @override
 String toString() {
-  return 'AppPreferences(widgetCode: $widgetCode, backgroundColor: $backgroundColor, appBarTitle: $appBarTitle, appBarBackgroundColor: $appBarBackgroundColor, appBarTitleColor: $appBarTitleColor, appBarBackButtonColor: $appBarBackButtonColor, fcmToken: $fcmToken, userName: $userName, email: $email, resetLocalStorage: $resetLocalStorage)';
+  return 'AppPreferences(widgetCode: $widgetCode, backgroundColor: $backgroundColor, appBarTitle: $appBarTitle, appBarBackgroundColor: $appBarBackgroundColor, appBarTitleColor: $appBarTitleColor, appBarBackButtonColor: $appBarBackButtonColor, fcmToken: $fcmToken, userName: $userName, email: $email, resetLocalStorage: $resetLocalStorage, environment: $environment)';
 }
 
 
@@ -265,7 +267,7 @@ abstract mixin class _$AppPreferencesCopyWith<$Res> implements $AppPreferencesCo
   factory _$AppPreferencesCopyWith(_AppPreferences value, $Res Function(_AppPreferences) _then) = __$AppPreferencesCopyWithImpl;
 @override @useResult
 $Res call({
- String widgetCode,@ColorConverter() Color backgroundColor, String appBarTitle,@ColorConverter() Color appBarBackgroundColor,@ColorConverter() Color appBarTitleColor,@ColorConverter() Color appBarBackButtonColor, String fcmToken, String userName, String email, bool resetLocalStorage
+ String widgetCode,@ColorConverter() Color backgroundColor, String appBarTitle,@ColorConverter() Color appBarBackgroundColor,@ColorConverter() Color appBarTitleColor,@ColorConverter() Color appBarBackButtonColor, String fcmToken, String userName, String email, bool resetLocalStorage, Environment environment
 });
 
 
@@ -282,7 +284,7 @@ class __$AppPreferencesCopyWithImpl<$Res>
 
 /// Create a copy of AppPreferences
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? widgetCode = null,Object? backgroundColor = null,Object? appBarTitle = null,Object? appBarBackgroundColor = null,Object? appBarTitleColor = null,Object? appBarBackButtonColor = null,Object? fcmToken = null,Object? userName = null,Object? email = null,Object? resetLocalStorage = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? widgetCode = null,Object? backgroundColor = null,Object? appBarTitle = null,Object? appBarBackgroundColor = null,Object? appBarTitleColor = null,Object? appBarBackButtonColor = null,Object? fcmToken = null,Object? userName = null,Object? email = null,Object? resetLocalStorage = null,Object? environment = null,}) {
   return _then(_AppPreferences(
 widgetCode: null == widgetCode ? _self.widgetCode : widgetCode // ignore: cast_nullable_to_non_nullable
 as String,backgroundColor: null == backgroundColor ? _self.backgroundColor : backgroundColor // ignore: cast_nullable_to_non_nullable
@@ -294,7 +296,8 @@ as Color,fcmToken: null == fcmToken ? _self.fcmToken : fcmToken // ignore: cast_
 as String,userName: null == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,resetLocalStorage: null == resetLocalStorage ? _self.resetLocalStorage : resetLocalStorage // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,environment: null == environment ? _self.environment : environment // ignore: cast_nullable_to_non_nullable
+as Environment,
   ));
 }
 

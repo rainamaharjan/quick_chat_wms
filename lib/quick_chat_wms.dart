@@ -49,6 +49,16 @@ class QuickChatWms {
     _userToken = token ?? '';
   }
 
+  /// The mobile number the user is logged in with, sent as `mobile` on
+  /// `store-firebase-token`. Same rules as [userToken]: memory only, set by
+  /// the host before [setFcmToken], cleared on [logout] and [resetUser].
+  static String _userMobile = '';
+  static String get userMobile => _userMobile;
+
+  static void setUserMobile(String? mobile) {
+    _userMobile = mobile ?? '';
+  }
+
   // CHANGED: void -> Future<void>
   static Future<void> init(
     BuildContext context, {
@@ -165,6 +175,7 @@ class QuickChatWms {
     // Deregister push for the user who just logged out.
     await NotificationHandlerService.updateFirebaseToken('', '', '', '');
     _userToken = '';
+    _userMobile = '';
 
     await SecureStorageService().delete(key: 'qc_client_unique_id');
     // Force the next login to re-fetch its history instead of trusting the
@@ -191,6 +202,7 @@ class QuickChatWms {
     );
     await NotificationHandlerService.updateFirebaseToken('', '', '', '');
     _userToken = '';
+    _userMobile = '';
     debugPrint("Quick chat ----------reset user");
   }
 }

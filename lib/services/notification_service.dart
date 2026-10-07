@@ -117,6 +117,7 @@ class NotificationHandlerService {
       // The user's bearer token from the host app (QuickChatWms.setUserToken).
       // Never log this body.
       'mobile_token': QuickChatWms.userToken,
+      'mobile': QuickChatWms.userMobile,
     };
     try {
       final response = await http.post(url, body: body);

@@ -36,6 +36,19 @@ class QuickChatWms {
   /// with no reference to this widget or its controller.
   static bool isFileSelectorActive = false;
 
+  /// The signed-in user's bearer token from the host app, sent as `user_token`
+  /// on `store-firebase-token` so the server can tell whose device it is.
+  ///
+  /// Kept in memory only — never written to storage, never logged. The host
+  /// sets it on every launch and login, BEFORE [setFcmToken], and it is
+  /// cleared on [logout] and [resetUser].
+  static String _userToken = '';
+  static String get userToken => _userToken;
+
+  static void setUserToken(String? token) {
+    _userToken = token ?? '';
+  }
+
   // CHANGED: void -> Future<void>
   static Future<void> init(
     BuildContext context, {
@@ -151,6 +164,7 @@ class QuickChatWms {
 
     // Deregister push for the user who just logged out.
     await NotificationHandlerService.updateFirebaseToken('', '', '', '');
+    _userToken = '';
 
     await SecureStorageService().delete(key: 'qc_client_unique_id');
     // Force the next login to re-fetch its history instead of trusting the
@@ -176,6 +190,7 @@ class QuickChatWms {
       data: (currentData) => AppPreferences(),
     );
     await NotificationHandlerService.updateFirebaseToken('', '', '', '');
+    _userToken = '';
     debugPrint("Quick chat ----------reset user");
   }
 }

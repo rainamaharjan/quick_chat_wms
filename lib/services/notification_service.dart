@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:quick_chat_wms/quick_chat_wms.dart';
 import 'package:quick_chat_wms/services/api_config.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
+import 'package:quick_chat_wms/services/secure_storage_service.dart';
 
 class NotificationHandlerService {
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
@@ -104,12 +105,45 @@ class NotificationHandlerService {
     _messages.clear();
   }
 
+  /// What the last successful `store-firebase-token` registered (user, email,
+  /// FCM token, client id, mobile), so a logged-in user is registered once per
+  /// login / account switch / token rotation instead of on every app start and
+  /// every chat open. Cleared by the logout deregistration.
+  static const String _registeredKey = 'qc_fcm_registered';
+
+  /// POSTs `store-firebase-token`.
+  ///
+  /// With [skipIfRegistered] the call is dropped when these exact values were
+  /// already registered. The bearer token (`mobile_token`) is deliberately not
+  /// part of that comparison: it is refreshed on its own schedule, and a new
+  /// bearer token for the same user and device is not a new registration.
+  ///
+  /// An all-empty call is the logout deregistration: always sent, and it
+  /// forgets the registration so the next login sends again.
   static Future<void> updateFirebaseToken(
     String username,
     String email,
     String fcmToken,
-    String uniqueId,
-  ) async {
+    String uniqueId, {
+    bool skipIfRegistered = false,
+  }) async {
+    final bool isDeregistration = username.isEmpty && fcmToken.isEmpty;
+    final String signature = jsonEncode(
+      [username, email, fcmToken, uniqueId, QuickChatWms.userMobile],
+    );
+    final SecureStorageService storage = SecureStorageService();
+    if (skipIfRegistered && !isDeregistration) {
+      final String? registered = await storage.read(key: _registeredKey);
+      if (registered == signature) {
+        if (kDebugMode) {
+          debugPrint(
+            'QUICKCHAT_STORE_FCM_TOKEN skipped: already registered for '
+            '"$username"',
+          );
+        }
+        return;
+      }
+    }
     final url = Uri.parse('$quickChatBaseUrl/api/api/v1/store-firebase-token');
     final body = {
       'token': quickChatStaticToken,
@@ -139,6 +173,11 @@ class NotificationHandlerService {
         );
       }
       if (response.statusCode == 200) {
+        if (isDeregistration) {
+          await storage.delete(key: _registeredKey);
+        } else {
+          await storage.write(key: _registeredKey, value: signature);
+        }
         debugPrint('FCM Token updated successfully');
       } else {
         debugPrint(

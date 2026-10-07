@@ -1057,11 +1057,15 @@ class QuickChatWebViewService {
     String fcmToken,
     String uniqueId,
   ) async {
+    // Logged in: opening the chat does not re-register. Only a conversation
+    // id the user was never registered with (their very first chat) is sent.
+    // Not logged in: unchanged, posted on every load.
     await NotificationHandlerService.updateFirebaseToken(
       username,
       email,
       fcmToken,
       uniqueId,
+      skipIfRegistered: QuickChatWms.userToken.isNotEmpty,
     );
   }
 

@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:quick_chat_wms/models/prefrence_model.dart';
 import 'package:quick_chat_wms/services/api_config.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
+import 'package:quick_chat_wms/services/client_service.dart';
 import 'package:quick_chat_wms/services/notification_service.dart';
 import 'package:quick_chat_wms/services/secure_storage_service.dart';
 import 'package:quick_chat_wms/services/webview_service.dart';
@@ -123,11 +125,13 @@ class QuickChatWms {
       data: (current) => current.copyWith(fcmToken: fcmToken ?? ''),
     );
 
-    // Re-register the token with `store-firebase-token` directly. Previously
-    // this ONLY happened from inside the chat WebView (on load), so a refreshed
-    // token was never sent unless the user reopened the chat. If we already
-    // know this client's uniqueId (captured on a prior chat open), push the new
-    // token now — including from the dashboard / on token refresh.
+    // A logged-in user ([userToken] set) is registered by the host through
+    // [registerFirebaseToken] — once per login, account switch or token
+    // rotation — so storing the token is all that happens here.
+    if (_userToken.isNotEmpty) return;
+
+    // Not logged in: unchanged. Re-register directly if this client's uniqueId
+    // is known (captured on a prior chat open).
     final String token = fcmToken ?? '';
     if (token.isEmpty) return;
     final String uniqueId =
@@ -139,6 +143,49 @@ class QuickChatWms {
       prefs.email,
       token,
       uniqueId,
+    );
+  }
+
+  /// Registers the logged-in user's FCM token with `store-firebase-token`.
+  ///
+  /// The host calls this when the user lands on the dashboard after login or
+  /// an account switch, and when the FCM token rotates — after [setUserName],
+  /// [setEmail], [setUserToken] and [setFcmToken]. Sent once: the same user,
+  /// token and client id are not registered again on later app starts or chat
+  /// opens (see [NotificationHandlerService.updateFirebaseToken]).
+  ///
+  /// Right after login the client id is not on the device yet (logout deletes
+  /// it), so it is looked up with `get-unique-id`. A user with no conversation
+  /// yet has none; their first chat registers once when the page mints one.
+  static Future<void> registerFirebaseToken() async {
+    if (_userToken.isEmpty) return;
+    final prefs = await _prefsService.getPreferences();
+    if (prefs.fcmToken.isEmpty || prefs.userName.isEmpty) return;
+    final SecureStorageService storage = SecureStorageService();
+    String uniqueId = await storage.read(key: 'qc_client_unique_id') ?? '';
+    if (uniqueId.isEmpty) {
+      uniqueId = await ClientService.fetchClientUniqueId(
+            widgetCode: prefs.widgetCode,
+            userName: prefs.userName,
+          ) ??
+          '';
+      if (uniqueId.isEmpty) {
+        if (kDebugMode) {
+          debugPrint(
+            'QUICKCHAT_STORE_FCM_TOKEN deferred: "${prefs.userName}" has no '
+            'client_unique_id yet (registers on their first chat)',
+          );
+        }
+        return;
+      }
+      await storage.write(key: 'qc_client_unique_id', value: uniqueId);
+    }
+    await NotificationHandlerService.updateFirebaseToken(
+      prefs.userName,
+      prefs.email,
+      prefs.fcmToken,
+      uniqueId,
+      skipIfRegistered: true,
     );
   }
 

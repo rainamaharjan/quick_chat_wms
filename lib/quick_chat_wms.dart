@@ -36,7 +36,7 @@ class QuickChatWms {
   /// with no reference to this widget or its controller.
   static bool isFileSelectorActive = false;
 
-  /// The signed-in user's bearer token from the host app, sent as `user_token`
+  /// The signed-in user's bearer token from the host app, sent as `mobile_token`
   /// on `store-firebase-token` so the server can tell whose device it is.
   ///
   /// Kept in memory only — never written to storage, never logged. The host

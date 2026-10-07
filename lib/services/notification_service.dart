@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -115,16 +118,26 @@ class NotificationHandlerService {
       'firebase_token': fcmToken,
       'client_unique_id': uniqueId,
       // The user's bearer token from the host app (QuickChatWms.setUserToken).
-      // Never log this body.
+      // Only ever logged under kDebugMode, below.
       'mobile_token': QuickChatWms.userToken,
       'mobile': QuickChatWms.userMobile,
     };
+    final headers = {'X-Auth-Token': quickChatAuthHeaderToken};
+    // Debug-only: kDebugMode so the headers and body (which carry the tokens)
+    // never reach release logs.
+    if (kDebugMode) {
+      debugPrint('QUICKCHAT_STORE_FCM_TOKEN POST $url');
+      debugPrint('QUICKCHAT_STORE_FCM_TOKEN headers: ${jsonEncode(headers)}');
+      debugPrint('QUICKCHAT_STORE_FCM_TOKEN body: ${jsonEncode(body)}');
+    }
     try {
-      final response = await http.post(
-        url,
-        headers: {'X-Auth-Token': quickChatAuthHeaderToken},
-        body: body,
-      );
+      final response = await http.post(url, headers: headers, body: body);
+      if (kDebugMode) {
+        debugPrint(
+          'QUICKCHAT_STORE_FCM_TOKEN response ${response.statusCode}: '
+          '${response.body}',
+        );
+      }
       if (response.statusCode == 200) {
         debugPrint('FCM Token updated successfully');
       } else {

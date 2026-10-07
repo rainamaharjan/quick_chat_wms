@@ -8,3 +8,7 @@ const String quickChatBaseUrl = 'https://app.quickconnect.biz';
 /// with `400 {"message":"Invalid token."}`.
 const String quickChatStaticToken =
     'UWNmOGYwMjlmYS0yZWE4LTQyNzAtODUwOS1iNDViMzUwZTZlM2Y=';
+
+/// Sent as the `X-Auth-Token` header on the same QuickConnect endpoints
+/// (`get-unique-id`, `store-firebase-token`).
+const String quickChatAuthHeaderToken = 'K7mP2xQ9vL4nR8sT5aW3cD6fH1jN0pZ';

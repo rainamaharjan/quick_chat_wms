@@ -39,7 +39,10 @@ class ClientService {
     try {
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': quickChatAuthHeaderToken,
+        },
         body: payload,
       );
 

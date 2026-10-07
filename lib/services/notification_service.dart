@@ -120,7 +120,11 @@ class NotificationHandlerService {
       'mobile': QuickChatWms.userMobile,
     };
     try {
-      final response = await http.post(url, body: body);
+      final response = await http.post(
+        url,
+        headers: {'X-Auth-Token': quickChatAuthHeaderToken},
+        body: body,
+      );
       if (response.statusCode == 200) {
         debugPrint('FCM Token updated successfully');
       } else {

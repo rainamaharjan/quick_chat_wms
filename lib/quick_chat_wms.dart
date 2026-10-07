@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quick_chat_wms/models/prefrence_model.dart';
+import 'package:quick_chat_wms/services/api_config.dart';
 import 'package:quick_chat_wms/services/app_preference_service.dart';
 import 'package:quick_chat_wms/services/notification_service.dart';
 import 'package:quick_chat_wms/services/secure_storage_service.dart';
@@ -59,6 +60,16 @@ class QuickChatWms {
     _userMobile = mobile ?? '';
   }
 
+  /// Points the SDK at another QuickChat host — the chat page and both API
+  /// endpoints. Production (https://app.quickconnect.biz) unless called; the
+  /// host app calls it before [init], e.g. with https://wms-uat.worldlink.com.np
+  /// for a UAT build.
+  static void setBaseUrl(String url) {
+    if (url.isNotEmpty) {
+      quickChatBaseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+    }
+  }
+
   // CHANGED: void -> Future<void>
   static Future<void> init(
     BuildContext context, {
@@ -71,6 +82,8 @@ class QuickChatWms {
   }) async {
     debugPrint("Quick chat ---------- start chat");
 
+    // The API `token` is derived from it — see quickChatStaticToken.
+    quickChatWidgetCode = widgetCode;
     await _prefsService.updatePreferences(
       data: (currentData) => currentData.copyWith(
         widgetCode: widgetCode,
